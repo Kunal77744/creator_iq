@@ -8,7 +8,7 @@ from ..models import Agency, AgencyCreator, Creator, User
 from ..roles import ADMIN, AGENCY, CREATOR
 from ..schemas import CreatorOut, CreatorUpdate
 
-router = APIRouter(prefix="/api/creators", tags=["Creator profile"])
+router = APIRouter(prefix="/creators", tags=["Creator profile"])
 
 
 def _own_creator(user: User, db: Session) -> Creator:

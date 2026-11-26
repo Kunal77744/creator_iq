@@ -6,7 +6,7 @@ import api, { errorMessage } from "../api";
 
 const FORMS = {
   creator: {
-    url: "/api/creators/me",
+    url: "/api/v1/creators/me",
     title: "Creator Profile",
     intro: "This is how you appear to agencies and on your reports.",
     fields: [
@@ -20,7 +20,7 @@ const FORMS = {
     nameField: "creator_name",
   },
   agency: {
-    url: "/api/agencies/me",
+    url: "/api/v1/agencies/me",
     title: "Agency Profile",
     intro: "Details of your agency shown to the creators you work with.",
     fields: [
@@ -53,7 +53,7 @@ export default function Profile() {
       .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false));
     if (user.role === "agency") {
-      api.get("/api/agencies/me/creators").then((r) => setCreators(r.data)).catch(() => {});
+      api.get("/api/v1/agencies/me/creators").then((r) => setCreators(r.data)).catch(() => {});
     }
   }, [cfg, user.role]);
 

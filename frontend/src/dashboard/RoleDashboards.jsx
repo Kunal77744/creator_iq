@@ -98,7 +98,7 @@ export function AgencyDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/api/agencies/me/overview")
+    api.get("/api/v1/agencies/me/overview")
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)));
   }, []);
@@ -184,7 +184,7 @@ export function MarketingDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/api/analytics/marketing/overview")
+    api.get("/api/v1/analytics/marketing/overview")
       .then((r) => setData(r.data))
       .catch((e) => setError(errorMessage(e)));
   }, []);
@@ -287,8 +287,8 @@ export function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/admin/users"),
-      api.get("/api/admin/overview"),
+      api.get("/api/v1/admin/users"),
+      api.get("/api/v1/admin/overview"),
     ])
       .then(([uRes, oRes]) => {
         setUsers(uRes.data);

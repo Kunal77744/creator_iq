@@ -7,6 +7,13 @@ import Profile from "./pages/Profile.jsx";
 import Settings from "./pages/Settings.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import ComingSoon from "./pages/ComingSoon.jsx";
+import SocialAccounts from "./pages/SocialAccounts.jsx";
+import ContentAnalytics from "./pages/ContentAnalytics.jsx";
+import AudiencePage from "./pages/AudiencePage.jsx";
+import RevenuePage from "./pages/RevenuePage.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import AICopilot from "./pages/AICopilot.jsx";
 
 function Protected({ roles, children }) {
   const { user, loading } = useAuth();
@@ -32,6 +39,14 @@ export default function App() {
       <Route path="/profile" element={<Protected><Profile /></Protected>} />
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/admin/users" element={<Protected roles={["admin"]}><AdminUsers /></Protected>} />
+      <Route path="/social-accounts" element={<Protected><SocialAccounts /></Protected>} />
+      <Route path="/content" element={<Protected><ContentAnalytics /></Protected>} />
+      <Route path="/analytics" element={<Protected><ContentAnalytics /></Protected>} />
+      <Route path="/audience" element={<Protected><AudiencePage /></Protected>} />
+      <Route path="/revenue" element={<Protected><RevenuePage /></Protected>} />
+      <Route path="/reports" element={<Protected><ReportsPage /></Protected>} />
+      <Route path="/notifications" element={<Protected><NotificationsPage /></Protected>} />
+      <Route path="/ai-copilot" element={<Protected><AICopilot /></Protected>} />
       <Route path="/m/:page" element={<Protected><ComingSoon /></Protected>} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

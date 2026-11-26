@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
       return;
     }
     api
-      .get("/api/auth/me")
+      .get("/api/v1/auth/me")
       .then((res) => setUser(res.data))
       .catch(() => localStorage.removeItem("creatoriq_token"))
       .finally(() => setLoading(false));
@@ -24,13 +24,13 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     // Backend uses the OAuth2 password flow, which expects form-encoded data.
     const form = new URLSearchParams({ username: email, password });
-    const res = await api.post("/api/auth/login", form);
+    const res = await api.post("/api/v1/auth/login", form);
     localStorage.setItem("creatoriq_token", res.data.access_token);
     setUser(res.data.user);
   }
 
   async function register(payload) {
-    await api.post("/api/auth/register", payload);
+    await api.post("/api/v1/auth/register", payload);
   }
 
   function logout() {

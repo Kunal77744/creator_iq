@@ -36,10 +36,10 @@ function CreatorDashboard() {
 
   const load = useCallback(() => {
     setLoadErr("");
-    api.get(`/api/analytics/overview?platform=${plat}&days=${days}`)
+    api.get(`/api/v1/analytics/overview?platform=${plat}&days=${days}`)
       .then((res) => setOverview(res.data))
       .catch((e) => setLoadErr(errorMessage(e)));
-    api.get(`/api/analytics/posts?sort_by=views&order=desc&platform=${plat}&days=${days}`)
+    api.get(`/api/v1/analytics/posts?sort_by=views&order=desc&platform=${plat}&days=${days}`)
       .then((res) => setPosts(res.data))
       .catch((e) => { setPosts([]); setLoadErr(errorMessage(e)); });
   }, [plat, days]);
@@ -64,7 +64,7 @@ function CreatorDashboard() {
     if (!h) return;
     setSyncing(true);
     try {
-      const res = await api.post("/api/analytics/youtube/sync", { channel_handle: h.trim() });
+      const res = await api.post("/api/v1/analytics/youtube/sync", { channel_handle: h.trim() });
       setSyncMsg({ ok: true, text: res.data.message });
       load();
     } catch (err) {
@@ -80,7 +80,7 @@ function CreatorDashboard() {
     if (!u) return;
     setSyncing(true);
     try {
-      const res = await api.post("/api/analytics/instagram/sync", { username: u.trim() });
+      const res = await api.post("/api/v1/analytics/instagram/sync", { username: u.trim() });
       setSyncMsg({ ok: true, text: res.data.message });
       load();
     } catch (err) {
@@ -95,7 +95,7 @@ function CreatorDashboard() {
     const token = localStorage.getItem("creatoriq_token");
     if (!token) return;
     try {
-      const res = await api.get(`/api/auth/linkedin/login?token=${token}`);
+      const res = await api.get(`/api/v1/auth/linkedin/login?token=${token}`);
       if (res.data?.auth_url) {
         window.location.href = res.data.auth_url;
       }

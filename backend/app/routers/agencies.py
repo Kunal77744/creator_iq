@@ -8,7 +8,7 @@ from ..models import Agency, AgencyCreator, Creator, SocialAccount, User
 from ..roles import ADMIN, AGENCY
 from ..schemas import AgencyCreatorAdd, AgencyOut, AgencyUpdate, CreatorOut
 
-router = APIRouter(prefix="/api/agencies", tags=["Agency profile"])
+router = APIRouter(prefix="/agencies", tags=["Agency profile"])
 
 
 def _own_agency(user: User, db: Session) -> Agency:

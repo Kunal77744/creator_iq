@@ -65,7 +65,7 @@ export function FollowerGrowth({ platform, days }) {
 
   useEffect(() => {
     setState((s) => ({ ...s, loading: true }));
-    api.get(`/api/analytics/audience?platform=${plat}&days=${days}`)
+    api.get(`/api/v1/analytics/audience?platform=${plat}&days=${days}`)
       .then((res) => setState({
         loading: false,
         connected: res.data.connected,
@@ -128,7 +128,7 @@ export function ContentPerformance({ platform, days }) {
   const plat = platform === "All Platforms" ? "all" : (platform || "all").toLowerCase();
 
   useEffect(() => {
-    api.get(`/api/analytics/content-performance?platform=${plat}&days=${days}`)
+    api.get(`/api/v1/analytics/content-performance?platform=${plat}&days=${days}`)
       .then((res) => setPerfData(res.data))
       .catch((err) => { console.error("Error loading content performance:", err); setPerfData({}); });
   }, [plat, days]);
@@ -194,7 +194,7 @@ export function TopPosts({ posts: parentPosts }) {
       }
       return;
     }
-    api.get("/api/analytics/posts?sort_by=views&order=desc")
+    api.get("/api/v1/analytics/posts?sort_by=views&order=desc")
       .then((res) => {
         setPosts(res.data);
         if (res.data.length >= 2) {
@@ -207,7 +207,7 @@ export function TopPosts({ posts: parentPosts }) {
 
   useEffect(() => {
     if (showCompare && selectedA && selectedB && selectedA !== selectedB) {
-      api.get(`/api/analytics/posts/compare?post_ids=${selectedA},${selectedB}`)
+      api.get(`/api/v1/analytics/posts/compare?post_ids=${selectedA},${selectedB}`)
         .then((res) => setCompData(res.data))
         .catch((e) => console.error(e));
     }

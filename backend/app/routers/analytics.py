@@ -8,13 +8,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import YOUTUBE_API_KEY
+from ..core.redis import cache_delete_prefix, cache_get, cache_set
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import AudienceAnalytics, Creator, Post, PostAnalytics, SocialAccount, User
 from ..services.youtube import YouTubeAPIError, sync_youtube_channel_to_db
 from ..services.instagram import InstagramAPIError, sync_instagram_to_db
 
-router = APIRouter(prefix="/api/analytics", tags=["Analytics & Content"])
+router = APIRouter(prefix="/analytics", tags=["Analytics & Content"])
 
 ALL = ("all", "all platforms", "", None)
 
@@ -101,6 +102,7 @@ def sync_youtube(data: SyncRequest, current_user: User = Depends(get_current_use
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "This channel is already connected to another creator.")
+    cache_delete_prefix(f"analytics:overview:{current_user.user_id}:")
     return {
         "status": "success",
         "message": f"{account.username} synced ({'live' if account.is_live else 'synced'} data)",
@@ -139,6 +141,11 @@ def get_analytics_overview(
     db: Session = Depends(get_db),
 ):
     """Lifetime channel totals (from the platform) + stats for posts published in the last `days` days."""
+    cache_key = f"analytics:overview:{current_user.user_id}:{(platform or 'all').lower()}:{days}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     creator = _get_or_create_creator(current_user, db)
     _ensure_demo_data(creator, db)
     accounts = _accounts(creator, db, platform)
@@ -156,7 +163,7 @@ def get_analytics_overview(
             if p.analytics.engagement_rate is not None:
                 rates.append(p.analytics.engagement_rate)
 
-    return {
+    payload = {
         "platform": (platform or "all").lower(),
         "connected": bool(accounts),
         "is_live": bool(accounts) and any(a.is_live for a in accounts),
@@ -181,6 +188,8 @@ def get_analytics_overview(
             for a in accounts
         ],
     }
+    cache_set(cache_key, payload, ttl_seconds=120)
+    return payload
 
 
 @router.get("/posts")

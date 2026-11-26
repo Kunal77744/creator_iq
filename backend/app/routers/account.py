@@ -9,7 +9,7 @@ from ..schemas import AccountUpdate, DeactivateRequest, PasswordChange, UserOut
 from ..security import hash_password, verify_password
 from .auth import to_user_out
 
-router = APIRouter(prefix="/api/account", tags=["Account settings"])
+router = APIRouter(prefix="/account", tags=["Account settings"])
 
 
 @router.patch("/me", response_model=UserOut)

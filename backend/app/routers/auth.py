@@ -10,7 +10,7 @@ from ..roles import AGENCY, CREATOR, ROLE_LABELS
 from ..schemas import RegisterRequest, TokenOut, UserOut
 from ..security import create_access_token, hash_password, verify_password
 
-router = APIRouter(prefix="/api/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 def to_user_out(user: User) -> UserOut:

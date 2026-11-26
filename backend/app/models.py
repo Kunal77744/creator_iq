@@ -22,6 +22,7 @@ from sqlalchemy import (
     true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from .database import Base
 
@@ -209,4 +210,51 @@ class AudienceAnalytics(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     social_account: Mapped[SocialAccount] = relationship(back_populates="audience_records")
+
+
+class RevenueEntry(Base):
+    __tablename__ = "revenues"
+
+    revenue_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source: Mapped[str] = mapped_column(String(50), nullable=False)  # sponsorship, ad_revenue, affiliate, brand_collab, subscription
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    platform: Mapped[str] = mapped_column(String(50), nullable=False, default="YouTube")
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="paid")  # paid, pending
+    earned_at: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    notification_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False, default="performance")
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+
+class ContentEmbedding(Base):
+    __tablename__ = "content_embeddings"
+
+    embedding_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    post_id: Mapped[int | None] = mapped_column(
+        ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_json: Mapped[dict | None] = mapped_column(JSON)
+    embedding: Mapped[list[float]] = mapped_column(Vector(384), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
 

@@ -1,0 +1,54 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ...models import ContentEmbedding
+from .embeddings import embed_text
+
+
+def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 4) -> list[dict]:
+    """Retrieve top-k chunks scoped strictly to user_id via pgvector cosine distance."""
+    query_vec = embed_text(query)
+    dist_expr = ContentEmbedding.embedding.cosine_distance(query_vec)
+
+    rows = db.execute(
+        select(ContentEmbedding, dist_expr.label("distance"))
+        .where(ContentEmbedding.user_id == user_id)
+        .order_by(dist_expr.asc())
+        .limit(top_k)
+    ).all()
+
+    results = []
+    for row, distance in rows:
+        meta = row.metadata_json or {}
+        results.append(
+            {
+                "post_id": row.post_id,
+                "title": meta.get("title", "Untitled"),
+                "platform": meta.get("platform", "Unknown"),
+                "views": meta.get("views", 0),
+                "engagement_rate": meta.get("engagement_rate", 0.0),
+                "chunk_text": row.chunk_text,
+                "score": round(max(0.0, 1.0 - float(distance)), 4),
+            }
+        )
+    return results
+
+
+def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
+    """Return a grounded answer and source citations from the creator's indexed content."""
+    hits = retrieve_similar_chunks(db, user_id, query, top_k=4)
+    if not hits:
+        return {
+            "answer": "No indexed content found for your account yet. Click 'Index Content' after syncing a social channel to enable grounded AI insights.",
+            "citations": [],
+        }
+
+    lines = ["Based on your indexed creator content in PostgreSQL:"]
+    for i, h in enumerate(hits, 1):
+        lines.append(
+            f"{i}. [{h['platform']}] {h['title']} — {h['views']:,} views, {h['engagement_rate']}% engagement (relevance {h['score']})."
+        )
+    return {
+        "answer": "\n".join(lines),
+        "citations": hits,
+    }

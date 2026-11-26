@@ -15,7 +15,7 @@ function NameForm() {
     if (name.trim().length < 2) return setMsg({ type: "error", text: "Name must be at least 2 characters." });
     setBusy(true);
     try {
-      const res = await api.patch("/api/account/me", { name: name.trim() });
+      const res = await api.patch("/api/v1/account/me", { name: name.trim() });
       updateUser(res.data);
       setMsg({ type: "success", text: "Name updated." });
     } catch (err) {
@@ -55,7 +55,7 @@ function PasswordForm() {
     if (f.next !== f.confirm) return setMsg({ type: "error", text: "New passwords do not match." });
     setBusy(true);
     try {
-      await api.post("/api/account/change-password", { current_password: f.current, new_password: f.next });
+      await api.post("/api/v1/account/change-password", { current_password: f.current, new_password: f.next });
       setF({ current: "", next: "", confirm: "" });
       setMsg({ type: "success", text: "Password changed." });
     } catch (err) {
@@ -91,7 +91,7 @@ function DangerZone() {
     setError("");
     setBusy(true);
     try {
-      await api.post("/api/account/deactivate", { password });
+      await api.post("/api/v1/account/deactivate", { password });
       logout();
     } catch (err) {
       setError(errorMessage(err));

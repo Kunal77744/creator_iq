@@ -84,3 +84,29 @@ pytest
 - `docs/DATABASE_SCHEMA.md` – ER diagram, tables, design decisions, open questions for the mentor
 - `docs/schema_diagram.png` – schema image in the style of the mentor's reference
 - `database/schema.sql` – SQL for all 13 tables (Module 1 builds 4 of them through Alembic)
+
+## 4. Docker Compose (Full Stack: Postgres + pgvector, Redis, FastAPI, Celery, React)
+```bash
+cp .env.example .env
+docker compose up --build
+```
+- Frontend: http://localhost:5173
+- Backend API & Swagger: http://localhost:8000/docs
+- Healthcheck: http://localhost:8000/api/v1/health
+
+## 5. CreatorIQ MCP Server (Claude Desktop / IDE)
+Add this to your `claude_desktop_config.json` or IDE MCP settings:
+```json
+{
+  "mcpServers": {
+    "creatoriq": {
+      "command": "python",
+      "args": ["-m", "app.ai.mcp.server"],
+      "cwd": "/path/to/creatoriq/backend",
+      "env": {
+        "DATABASE_URL": "postgresql+psycopg2://postgres:postgres@localhost:5433/creatoriq"
+      }
+    }
+  }
+}
+```

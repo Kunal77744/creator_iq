@@ -18,7 +18,7 @@ export default function AdminUsers() {
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
-    api.get("/api/admin/users")
+    api.get("/api/v1/admin/users")
       .then((r) => setUsers(r.data))
       .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false));
@@ -28,7 +28,7 @@ export default function AdminUsers() {
     setError("");
     setBusyId(id);
     try {
-      const res = await api.patch(`/api/admin/users/${id}`, changes);
+      const res = await api.patch(`/api/v1/admin/users/${id}`, changes);
       setUsers((list) => list.map((u) => (u.user_id === id ? res.data : u)));
     } catch (e) {
       setError(errorMessage(e));

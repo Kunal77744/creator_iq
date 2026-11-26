@@ -9,7 +9,7 @@ from ..roles import ADMIN, AGENCY, CREATOR
 from ..schemas import AdminUserUpdate, UserOut
 from .auth import to_user_out
 
-router = APIRouter(prefix="/api/admin", tags=["Admin"])
+router = APIRouter(prefix="/admin", tags=["Admin"])
 admin_only = require_roles(ADMIN)
 
 

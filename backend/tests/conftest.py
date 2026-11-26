@@ -1,15 +1,17 @@
 import os
-import tempfile
 
 # Must be set before the app is imported.
-_db = os.path.join(tempfile.mkdtemp(), "test.db")
-os.environ["DATABASE_URL"] = f"sqlite:///{_db}"
+os.environ["DATABASE_URL"] = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5433/creatoriq_test",
+)
 os.environ["SECRET_KEY"] = "test-secret"
 os.environ["SEED_DEMO_USERS"] = "false"
 os.environ["BCRYPT_ROUNDS"] = "4"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
@@ -18,7 +20,9 @@ from app.seed import DEMO_PASSWORD, seed_demo_users  # noqa: E402
 
 @pytest.fixture()
 def client():
-    """Fresh database with the 4 demo users before every test."""
+    """Fresh PostgreSQL + pgvector schema with the 4 demo users before every test."""
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
