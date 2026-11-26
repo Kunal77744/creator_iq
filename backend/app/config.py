@@ -1,10 +1,27 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
+# Load project-root .env.local (written by `neon init` / `neon deploy`) and backend .env
+_ROOT_ENV_LOCAL = Path(__file__).resolve().parent.parent.parent / ".env.local"
+if _ROOT_ENV_LOCAL.exists():
+    load_dotenv(_ROOT_ENV_LOCAL)
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/creatoriq")
+
+def _normalize_pg_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg2://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg2://" + url[len("postgresql://"):]
+    return url
+
+
+DATABASE_URL = _normalize_pg_url(
+    os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/creatoriq")
+)
+DATABASE_URL_UNPOOLED = _normalize_pg_url(os.getenv("DATABASE_URL_UNPOOLED", DATABASE_URL))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-change-me")
 ALGORITHM = "HS256"
