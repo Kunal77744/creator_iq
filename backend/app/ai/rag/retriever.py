@@ -1,22 +1,62 @@
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
-from ...models import ContentEmbedding
+from ...models import ContentEmbedding, Creator, Post, PostAnalytics, SocialAccount
 from ..llm import generate_ai_text
 from .embeddings import embed_text
 
 
+def _sql_top_posts(db: Session, user_id: int, by_engagement: bool, top_k: int) -> list[dict]:
+    """Query PostgreSQL directly for true top posts by views or engagement_rate."""
+    order_col = desc(PostAnalytics.engagement_rate) if by_engagement else desc(PostAnalytics.views)
+    rows = db.execute(
+        select(Post, PostAnalytics, SocialAccount.platform)
+        .join(PostAnalytics, PostAnalytics.post_id == Post.post_id)
+        .join(SocialAccount, SocialAccount.account_id == Post.account_id)
+        .join(Creator, Creator.creator_id == SocialAccount.creator_id)
+        .where(Creator.user_id == user_id)
+        .order_by(order_col, desc(PostAnalytics.views))
+        .limit(top_k)
+    ).all()
+
+    return [
+        {
+            "post_id": post.post_id,
+            "title": post.caption or "Untitled",
+            "platform": (platform or "Unknown").capitalize(),
+            "views": analytics.views or 0,
+            "engagement_rate": analytics.engagement_rate or 0.0,
+            "chunk_text": f"[{platform}] {post.caption} — {analytics.views} views, {analytics.engagement_rate}% eng",
+            "score": 1.0,
+        }
+        for post, analytics, platform in rows
+    ]
+
+
 def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 4) -> list[dict]:
-    """Retrieve top-k chunks scoped strictly to user_id via pgvector cosine distance + metric reranking."""
+    """Retrieve top-k chunks scoped strictly to user_id (SQL for superlatives, pgvector for semantic search)."""
+    q_lower = (query or "").lower()
+    if any(w in q_lower for w in ("highest", "top", "best", "most", "max")) and any(
+        m in q_lower for m in ("view", "engagement", "perform", "video", "post")
+    ):
+        has_embeddings = db.scalar(
+            select(ContentEmbedding.embedding_id).where(ContentEmbedding.user_id == user_id).limit(1)
+        )
+        if not has_embeddings:
+            return []
+        by_eng = "engagement" in q_lower and "view" not in q_lower
+        sql_hits = _sql_top_posts(db, user_id, by_engagement=by_eng, top_k=top_k)
+        if sql_hits:
+            return sql_hits
+
     query_vec = embed_text(query)
     dist_expr = ContentEmbedding.embedding.cosine_distance(query_vec)
 
-    fetch_limit = max(top_k * 5, 20)
     rows = db.execute(
         select(ContentEmbedding, dist_expr.label("distance"))
         .where(ContentEmbedding.user_id == user_id)
         .order_by(dist_expr.asc())
-        .limit(fetch_limit)
+        .limit(top_k)
     ).all()
 
     results = []
@@ -33,15 +73,7 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
                 "score": round(max(0.0, 1.0 - float(distance)), 4),
             }
         )
-
-    q_lower = (query or "").lower()
-    if any(w in q_lower for w in ("highest", "top", "best", "most", "max")):
-        if "engagement" in q_lower and "view" not in q_lower:
-            results.sort(key=lambda r: (r["engagement_rate"], r["views"]), reverse=True)
-        else:
-            results.sort(key=lambda r: (r["views"], r["engagement_rate"]), reverse=True)
-
-    return results[:top_k]
+    return results
 
 
 def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
@@ -51,6 +83,7 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
         return {
             "answer": "No indexed content found for your account yet. Click 'Index Content' after syncing a social channel to enable grounded AI insights.",
             "citations": [],
+            "source": "fallback",
         }
 
     context = "\n".join(
@@ -62,7 +95,7 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
         system_prompt="You are CreatorIQ AI. Answer concisely using ONLY the retrieved creator metrics above.",
     )
     if llm_answer:
-        return {"answer": llm_answer, "citations": hits}
+        return {"answer": llm_answer, "citations": hits, "source": "llm"}
 
     lines = ["Based on your indexed creator content in PostgreSQL:"]
     for i, h in enumerate(hits, 1):
@@ -72,4 +105,5 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
     return {
         "answer": "\n".join(lines),
         "citations": hits,
+        "source": "fallback",
     }

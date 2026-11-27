@@ -23,11 +23,12 @@ def generate_ai_text(prompt: str, system_prompt: str = "") -> Optional[str]:
         return None
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
-    full_prompt = f"{system_prompt}\n\n{prompt}".strip() if system_prompt else prompt
     payload = {
-        "contents": [{"parts": [{"text": full_prompt}]}],
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.4, "maxOutputTokens": 600},
     }
+    if system_prompt:
+        payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),

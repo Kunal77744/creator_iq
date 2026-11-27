@@ -70,4 +70,5 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
         "reply": llm_reply or fallback_reply,
         "tools_used": tools_used,
         "citations": citations,
+        "source": "llm" if llm_reply else "rule_based_fallback",
     }

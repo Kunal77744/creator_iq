@@ -40,18 +40,14 @@ async def _sync_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Tables are managed strictly by Alembic migrations (`alembic upgrade head`).
+    # Scheduled YouTube sync is handled by Celery Beat + Worker (`app.workers.tasks`).
     if SEED_DEMO_USERS:
         try:
             with SessionLocal() as db:
                 seed_demo_users(db)
         except (OperationalError, ProgrammingError):
             log.error("Database tables not found. Run: alembic upgrade head")
-    task = None
-    if YOUTUBE_API_KEY and SYNC_INTERVAL_MINUTES > 0:
-        task = asyncio.create_task(_sync_loop())
     yield
-    if task:
-        task.cancel()
 
 
 app = FastAPI(title="CreatorIQ API", version="0.2.0", lifespan=lifespan)

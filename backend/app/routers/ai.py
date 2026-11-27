@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/ai", tags=["AI Copilot & RAG"])
 
 
 class RagQueryRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=1000)
 
     @field_validator("query")
     @classmethod
@@ -27,7 +27,7 @@ class RagQueryRequest(BaseModel):
 
 
 class AgentChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=1000)
 
     @field_validator("message")
     @classmethod
@@ -67,6 +67,7 @@ def get_ai_insights(current_user: User = Depends(get_current_user), db: Session 
                 "Sync your primary channel in Social Accounts to index your content into pgvector.",
                 "Track sponsorships and AdSense in Revenue to enable AI deal pricing.",
             ],
+            "source": "fallback",
         }
 
     sp = calculate_sponsorship_rate(db, current_user.user_id)
@@ -89,6 +90,7 @@ def get_ai_insights(current_user: User = Depends(get_current_user), db: Session 
         "summary": llm_summary or insights[0],
         "insights": insights,
         "recommended_rate_inr": sp["recommended_rate_inr"],
+        "source": "llm" if llm_summary else "fallback",
     }
 
 
@@ -135,6 +137,7 @@ def analyze_post(post_id: int, current_user: User = Depends(get_current_user), d
         "analysis": analysis,
         "next_ideas": next_ideas,
         "related_posts": related,
+        "source": "llm" if llm_analysis else "fallback",
     }
 
 

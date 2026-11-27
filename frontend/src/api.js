@@ -11,6 +11,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Clear expired/invalid JWT on 401 and redirect to /login.
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status;
+    const url = err?.config?.url || "";
+    if (status === 401 && !url.includes("/auth/login")) {
+      localStorage.removeItem("creatoriq_token");
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.assign("/login");
+      }
+    }
+    return Promise.reject(err);
+  }
+);
+
 // Turn FastAPI errors (string or validation list) into one readable message.
 export function errorMessage(err) {
   const detail = err?.response?.data?.detail;

@@ -2,7 +2,7 @@
 
 **Live App:** https://creatoriq-eight.vercel.app
 
-A full-stack, multi-role SaaS analytics platform for **Creators**, **Agencies**, **Marketing Teams**, and **Administrators** — featuring live YouTube Data API v3 sync, PostgreSQL + `pgvector` RAG, a tool-calling Growth Agent, an MCP Server, Redis caching, Celery workers, and Docker Compose orchestration.
+A full-stack, multi-role SaaS analytics platform for **Creators**, **Agencies**, **Marketing Teams**, and **Administrators** — featuring live YouTube Data API v3 sync, PostgreSQL + `pgvector` RAG, a rule-based tool-orchestrating Growth Agent with Gemini summarization, an MCP Server, Redis caching, Celery workers + beat, and Docker Compose orchestration.
 
 ---
 
@@ -83,7 +83,7 @@ npm run dev
 
 ## Testing
 
-- **Backend (`68` pytest tests against PostgreSQL + `pgvector` + Redis):**
+- **Backend (`71` pytest tests against PostgreSQL + `pgvector` + Redis):**
   ```bash
   cd backend
   pip install -r requirements-dev.txt

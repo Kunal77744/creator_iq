@@ -66,6 +66,22 @@ services:
       redis:
         condition: service_healthy
 
+  celery_beat:
+    build: ./backend
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/creatoriq
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-change-this-to-a-long-random-string}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
