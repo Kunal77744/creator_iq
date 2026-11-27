@@ -3,9 +3,9 @@ import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
 const QUICK_PROMPTS = [
+  "What are viewers asking in my YouTube comments? Suggest my next video idea",
   "Give me my channel KPIs, revenue summary, and recommended sponsorship rate",
   "Which of my videos have the highest views and engagement?",
-  "What is my current revenue and pending payouts?",
   "How much should I charge for a brand sponsorship?",
 ];
 
@@ -195,7 +195,10 @@ export default function AICopilot() {
                           border: "1px solid #e2e8f0",
                         }}
                       >
-                        <strong>[{c.platform}] {c.title}</strong> — {(c.views || 0).toLocaleString()} views, {c.engagement_rate}% eng (score {c.score})
+                        <strong>[{c.platform}{c.chunk_type === "comments" ? " Comments" : ""}] {c.title}</strong> — {(c.views || 0).toLocaleString()} views, {c.engagement_rate}% eng (score {c.score})
+                        {c.chunk_type === "comments" && c.chunk_text && (
+                          <div style={{ marginTop: 4, color: "#475569" }}>{c.chunk_text}</div>
+                        )}
                       </div>
                     ))}
                   </div>

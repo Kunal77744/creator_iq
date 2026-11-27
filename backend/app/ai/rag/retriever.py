@@ -52,12 +52,25 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
     query_vec = embed_text(query)
     dist_expr = ContentEmbedding.embedding.cosine_distance(query_vec)
 
-    rows = db.execute(
-        select(ContentEmbedding, dist_expr.label("distance"))
-        .where(ContentEmbedding.user_id == user_id)
-        .order_by(dist_expr.asc())
-        .limit(top_k)
-    ).all()
+    rows = []
+    if any(w in q_lower for w in ("comment", "audience", "viewer", "feedback", "asking", "asked", "reply", "replies")):
+        rows = db.execute(
+            select(ContentEmbedding, dist_expr.label("distance"))
+            .where(
+                ContentEmbedding.user_id == user_id,
+                ContentEmbedding.metadata_json["chunk_type"].as_string() == "comments",
+            )
+            .order_by(dist_expr.asc())
+            .limit(top_k)
+        ).all()
+
+    if not rows:
+        rows = db.execute(
+            select(ContentEmbedding, dist_expr.label("distance"))
+            .where(ContentEmbedding.user_id == user_id)
+            .order_by(dist_expr.asc())
+            .limit(top_k)
+        ).all()
 
     results = []
     for row, distance in rows:
