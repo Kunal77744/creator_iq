@@ -20,7 +20,10 @@ from app.seed import DEMO_PASSWORD, seed_demo_users  # noqa: E402
 
 @pytest.fixture()
 def client():
-    """Fresh PostgreSQL + pgvector schema with the 4 demo users before every test."""
+    """Fresh PostgreSQL + pgvector schema and clean Redis cache before every test."""
+    from app.core.redis import cache_delete_prefix
+
+    cache_delete_prefix("analytics:")
     with engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
     Base.metadata.drop_all(engine)
