@@ -97,7 +97,7 @@ npm run dev
 
 ---
 
-## CreatorIQ MCP Server (Claude Desktop / IDE)
+## CreatorIQ MCP Server (Any MCP Client)
 
 ```json
 {
@@ -107,7 +107,7 @@ npm run dev
       "args": ["-m", "app.ai.mcp.server"],
       "cwd": "/path/to/creatoriq/backend",
       "env": {
-        "DATABASE_URL": "postgresql+psycopg2://postgres:postgres@localhost:5433/creatoriq"
+        "DATABASE_URL": "<YOUR_DATABASE_URL>"
       }
     }
   }
