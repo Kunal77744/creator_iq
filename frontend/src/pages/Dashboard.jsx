@@ -109,23 +109,26 @@ function CreatorDashboard() {
 
   return (
     <>
-      <div className="chips" role="group" aria-label="Platform filter">
-        {PLATFORMS.map((p) => (
-          <button key={p} className={"chip" + (platform === p ? " on" : "")} aria-pressed={platform === p} onClick={() => setPlatform(p)}>
-            {p !== "All Platforms" && <PlatformBadge name={p} size={18} />}
-            {p}
+      <div className="toolbar-split">
+        <div className="chips" role="group" aria-label="Platform filter">
+          {PLATFORMS.map((p) => (
+            <button key={p} className={"chip" + (platform === p ? " on" : "")} aria-pressed={platform === p} onClick={() => setPlatform(p)}>
+              {p !== "All Platforms" && <PlatformBadge name={p} size={18} />}
+              {p}
+            </button>
+          ))}
+        </div>
+        <div className="chips actions" role="group" aria-label="Channel sync actions">
+          <button className="chip ghost" onClick={handleSync} disabled={syncing} title="Connect / refresh a YouTube channel">
+            <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync YouTube"}
           </button>
-        ))}
-        <button className="chip ghost" onClick={handleSync} disabled={syncing} title="Connect / refresh a YouTube channel">
-          <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync YouTube"}
-        </button>
-        <button className="chip ghost" onClick={handleInstagramSync} disabled={syncing} title="Connect / refresh an Instagram account">
-          <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync Instagram"}
-        </button>
-        <button className="chip ghost" onClick={handleLinkedInConnect} disabled={syncing} title="Connect LinkedIn profile via official OAuth">
-          <PlatformBadge name="LinkedIn" size={14} /> Connect LinkedIn
-        </button>
-
+          <button className="chip ghost" onClick={handleInstagramSync} disabled={syncing} title="Connect / refresh an Instagram account">
+            <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync Instagram"}
+          </button>
+          <button className="chip ghost" onClick={handleLinkedInConnect} disabled={syncing} title="Connect LinkedIn profile via official OAuth">
+            <PlatformBadge name="LinkedIn" size={14} /> Connect LinkedIn
+          </button>
+        </div>
       </div>
 
       <p className="sample-note">
