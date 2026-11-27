@@ -24,12 +24,16 @@ DATABASE_URL = _normalize_pg_url(
 DATABASE_URL_UNPOOLED = _normalize_pg_url(os.getenv("DATABASE_URL_UNPOOLED", DATABASE_URL))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-change-me")
+if os.getenv("ENV", "").lower() == "production" and SECRET_KEY == "dev-only-secret-change-me":
+    raise RuntimeError("SECRET_KEY must be set to a strong secret in production.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
-SEED_DEMO_USERS = os.getenv("SEED_DEMO_USERS", "true").lower() == "true"
+SEED_DEMO_USERS = os.getenv("SEED_DEMO_USERS", "false").lower() == "true"
 BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", "12"))  # tests lower this for speed
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
 SYNC_INTERVAL_MINUTES = int(os.getenv("SYNC_INTERVAL_MINUTES", "360"))  # auto re-sync of connected YouTube channels (0 = off)
 
 LINKEDIN_CLIENT_ID = os.getenv('LINKEDIN_CLIENT_ID', '')

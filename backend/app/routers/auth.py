@@ -84,15 +84,21 @@ def linkedin_login(token: str):
 @router.get("/linkedin/callback")
 def linkedin_callback(code: str, state: str, db: Session = Depends(get_db)):
     """Receives OAuth code from LinkedIn, exchanges for token and stores account."""
+    from ..config import FRONTEND_ORIGIN
     from ..security import decode_access_token
-    payload = decode_access_token(state)
+
+    frontend_base = FRONTEND_ORIGIN.split(",")[0].strip().rstrip("/") or "http://localhost:5173"
+    try:
+        payload = decode_access_token(state)
+    except Exception:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid state token")
     if not payload:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid state token")
 
     user_id = int(payload.get("sub", 0))
     user = db.get(User, user_id)
     if not user:
-        return RedirectResponse("http://localhost:5173/dashboard?linkedin_error=User+not+found")
+        return RedirectResponse(f"{frontend_base}/dashboard?linkedin_error=User+not+found")
 
     from ..models import Creator
     creator = db.scalar(select(Creator).where(Creator.user_id == user.user_id))
@@ -107,11 +113,9 @@ def linkedin_callback(code: str, state: str, db: Session = Depends(get_db)):
         access_token = token_data.get("access_token")
         expires_in = token_data.get("expires_in", 5184000)
         userinfo = fetch_linkedin_userinfo(access_token)
-        account = sync_linkedin_to_db(creator.creator_id, userinfo, access_token, expires_in, db)
-    except Exception as e:
-        import urllib.parse
-        err_msg = urllib.parse.quote(str(e))
-        return RedirectResponse(f"http://localhost:5173/dashboard?linkedin_error={err_msg}")
+        sync_linkedin_to_db(creator.creator_id, userinfo, access_token, expires_in, db)
+    except Exception:
+        return RedirectResponse(f"{frontend_base}/dashboard?linkedin_error=oauth_failed")
 
     # Redirect to frontend dashboard with success flag
-    return RedirectResponse("http://localhost:5173/dashboard?linkedin_synced=true")
+    return RedirectResponse(f"{frontend_base}/dashboard?linkedin_synced=true")

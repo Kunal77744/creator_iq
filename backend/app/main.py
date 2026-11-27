@@ -56,9 +56,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CreatorIQ API", version="0.2.0", lifespan=lifespan)
 
+_allowed_origins = [o.strip() for o in FRONTEND_ORIGIN.split(",") if o.strip()] or ["http://localhost:5173"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

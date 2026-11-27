@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -12,7 +12,6 @@ from ..models import RevenueEntry, User
 
 router = APIRouter(prefix="/revenue", tags=["Revenue & Monetization"])
 
-VALID_SOURCES = ("sponsorship", "ad_revenue", "affiliate", "brand_collab", "subscription")
 SOURCE_LABELS = {
     "sponsorship": "Sponsorships",
     "ad_revenue": "Ad Revenue",
@@ -23,11 +22,11 @@ SOURCE_LABELS = {
 
 
 class RevenueCreate(BaseModel):
-    source: str = Field(default="sponsorship")
+    source: Literal["sponsorship", "ad_revenue", "affiliate", "brand_collab", "subscription"] = "sponsorship"
     title: str = Field(min_length=2, max_length=150)
     platform: str = Field(default="YouTube", max_length=50)
     amount: float = Field(gt=0)
-    status: str = Field(default="paid")
+    status: Literal["paid", "pending"] = "paid"
     earned_at: Optional[date] = None
 
 
@@ -97,14 +96,13 @@ def list_revenue(current_user: User = Depends(get_current_user), db: Session = D
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_revenue(data: RevenueCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    src = data.source if data.source in VALID_SOURCES else "sponsorship"
     entry = RevenueEntry(
         user_id=current_user.user_id,
-        source=src,
+        source=data.source,
         title=data.title.strip(),
         platform=data.platform.strip() or "YouTube",
         amount=data.amount,
-        status=data.status if data.status in ("paid", "pending") else "paid",
+        status=data.status,
         earned_at=data.earned_at or date.today(),
     )
     db.add(entry)

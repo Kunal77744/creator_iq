@@ -10,11 +10,11 @@ import urllib.error
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..config import RAPIDAPI_KEY
 from ..models import AudienceAnalytics, Post, PostAnalytics, SocialAccount, User
 
 log = logging.getLogger(__name__)
 
-RAPIDAPI_KEY = "37292a3d06msh64264f727491374p105d30jsn8fa339ca5c84"
 RAPIDAPI_HOST = "instagram-scraper-stable-api.p.rapidapi.com"
 PROFILE_URL = "https://instagram-scraper-stable-api.p.rapidapi.com/ig_get_fb_profile.php"
 
@@ -28,6 +28,8 @@ class InstagramAPIError(Exception):
 
 def fetch_instagram_profile(username_or_url: str) -> dict:
     """Fetches real-time profile data from Instagram via RapidAPI."""
+    if not RAPIDAPI_KEY:
+        raise InstagramAPIError("RAPIDAPI_KEY is not configured.", 503)
     clean_user = username_or_url.strip().lstrip("@")
     
     # Multipart form data boundary

@@ -1,101 +1,104 @@
-# CreatorIQ – Module 1: User Management
+# CreatorIQ — AI-Native Creator Analytics & Content Performance Platform
 
-Register, login, role-based dashboards, creator and agency profiles, account settings, admin user management.
+**Live App:** https://creatoriq-eight.vercel.app
 
-**Stack:** FastAPI, SQLAlchemy, Pydantic, Alembic, JWT (OAuth2 password flow), PostgreSQL, React (Vite), Recharts.
+A full-stack, multi-role SaaS analytics platform for **Creators**, **Agencies**, **Marketing Teams**, and **Administrators** — featuring live YouTube Data API v3 sync, PostgreSQL + `pgvector` RAG, a tool-calling Growth Agent, an MCP Server, Redis caching, Celery workers, and Docker Compose orchestration.
 
-```
-backend/    FastAPI app, Alembic migrations, pytest tests
-frontend/   React app
-database/   schema.sql  (full project schema, all 13 tables)
-docs/       DATABASE_SCHEMA.md, schema_diagram.png/.svg, API.md
-postman/    Postman collection (51 requests with tests)
-```
+---
 
-## 1. Database
-Create an empty PostgreSQL database:
-```sql
-CREATE DATABASE creatoriq;
+## Architecture
+
+```text
+React (Vite + Recharts) ──▶ FastAPI (/api/v1/*) ──▶ PostgreSQL + pgvector (Neon / Docker)
+                                  │
+                                  ├── Redis (Analytics Cache & Celery Broker)
+                                  ├── Celery Worker (Scheduled YouTube Sync)
+                                  └── AI Layer (pgvector RAG, Growth Agent, FastMCP Server)
 ```
 
-## 2. Run the backend
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate          # Windows   (Mac/Linux: source venv/bin/activate)
-pip install -r requirements.txt
-copy .env.example .env         # then set DATABASE_URL, SECRET_KEY, and optional YOUTUBE_API_KEY
-alembic upgrade head           # creates the tables
-uvicorn app.main:app --reload
-```
-API docs: http://localhost:8000/docs
+---
 
-If `DATABASE_URL` is missing it uses a local SQLite file, which is fine for a quick try.
+## Tech Stack
 
-### YouTube Data API v3 (Live Sync)
-To fetch live YouTube channel metrics, add your Google API key in `backend/.env`:
-```bash
-YOUTUBE_API_KEY=your_google_api_key_here
-```
-In the Creator Dashboard, clicking **Sync YouTube** with a handle (e.g. `@chaiaurcode`) directly fetches live subscriber count, views, and recent videos. If left blank, high-fidelity demo fallback ensures evaluation remains 100% functional without quota dependencies.
+- **Frontend:** React 18, Vite 5, React Router, Recharts, Axios, Vitest + React Testing Library
+- **Backend:** FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, PyJWT, `bcrypt`, Celery, Redis
+- **Database:** PostgreSQL 16 + `pgvector` (Neon Cloud in production; `pgvector/pgvector:pg16` in Docker)
+- **AI & MCP:** `pgvector` cosine-similarity RAG + hybrid metric reranking, Google Gemini (`gemini-2.5-flash` & `text-embedding-004` when `LLM_API_KEY` is set, with deterministic fallback), and `FastMCP` server (`app.ai.mcp.server`)
+- **DevOps & CI:** Docker, Docker Compose, GitHub Actions (`.github/workflows/ci.yml`), Vercel
 
-## 3. Run the frontend
-```bash
-cd frontend
-npm install
-copy .env.example .env
-npm run dev
-```
-Open http://localhost:5173
+---
 
-## Demo logins
-Created automatically on first start. Password for all: `Demo@1234`
+## Environment Variables
 
-| Role | Email |
-|---|---|
-| Creator | creator@creatoriq.com |
-| Agency | agency@creatoriq.com |
-| Marketing Team | marketing@creatoriq.com |
-| Administrator | admin@creatoriq.com |
+Copy `backend/.env.example` to `backend/.env` (used by both local runs and `docker compose`):
 
-Set `SEED_DEMO_USERS=false` in `.env` for any real deployment.
-
-## What each role sees
-| Role | Dashboard | Other pages |
+| Variable | Required | Description |
 |---|---|---|
-| Creator | KPIs, follower growth, content performance, top posts, audience, revenue | My Profile, Settings |
-| Agency | KPIs, overall performance, platform distribution, creators overview | Agency Profile (with linked creators), Settings |
-| Marketing Team | KPIs, campaign performance, top campaigns, recent campaigns, content mix, audience insights | Settings |
-| Administrator | live user counts, recent users, plus sample growth, usage and activity | User Management, Settings |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (`postgresql+psycopg2://...`) |
+| `SECRET_KEY` | Yes | Strong random secret for JWT signing (`HS256`) |
+| `REDIS_URL` | Optional | Redis URL for caching & Celery (`redis://localhost:6379/0`) |
+| `FRONTEND_ORIGIN` | Yes | Comma-separated allowed CORS origins (e.g. `http://localhost:5173`) |
+| `SEED_DEMO_USERS` | Optional | `true` to seed 4 demo accounts (`Demo@1234`); keep `false` in production |
+| `YOUTUBE_API_KEY` | Optional | YouTube Data API v3 key for live channel & video sync |
+| `LLM_API_KEY` | Optional | Google Gemini API key for LLM synthesis & 384-dim embeddings |
+| `RAPIDAPI_KEY` | Optional | RapidAPI key for Instagram profile sync |
+| `LINKEDIN_CLIENT_ID` / `SECRET` | Optional | LinkedIn OAuth credentials |
 
-Creator dashboard displays live channel and video analytics when synced with `YOUTUBE_API_KEY` (or high-fidelity demo data if no key is provided). Administrator's user counts and recent users come directly from the PostgreSQL database. Menu items for later modules open a "coming soon" page.
+---
 
-## Tests
-**Automated (pytest, 28 tests):**
+## Quick Start (Docker Compose)
+
 ```bash
-cd backend
-pip install -r requirements-dev.txt
-pytest
-```
-**Postman:** import `postman/CreatorIQ_Module1.postman_collection.json`, start the backend, and run the collection with the Collection Runner (top to bottom). It covers: valid and duplicate registration, invalid input, valid and invalid login, no token, wrong role, updating your own profile, accessing another user's profile, account settings.
-
-## Docs
-- `docs/API.md` – endpoints, auth flow, status codes, examples
-- `docs/DATABASE_SCHEMA.md` – ER diagram, tables, design decisions, open questions for the mentor
-- `docs/schema_diagram.png` – schema image in the style of the mentor's reference
-- `database/schema.sql` – SQL for all 13 tables (Module 1 builds 4 of them through Alembic)
-
-## 4. Docker Compose (Full Stack: Postgres + pgvector, Redis, FastAPI, Celery, React)
-```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
+# Edit backend/.env with your keys
 docker compose up --build
 ```
-- Frontend: http://localhost:5173
-- Backend API & Swagger: http://localhost:8000/docs
-- Healthcheck: http://localhost:8000/api/v1/health
+- **Frontend:** http://localhost:5173
+- **API & Swagger Docs:** http://localhost:8000/docs
+- **Healthcheck:** http://localhost:8000/api/v1/health
 
-## 5. CreatorIQ MCP Server (Claude Desktop / IDE)
-Add this to your `claude_desktop_config.json` or IDE MCP settings:
+---
+
+## Local Development (Without Docker for App)
+
+```bash
+# 1. Start Postgres (pgvector) & Redis
+docker compose up -d postgres redis
+
+# 2. Backend
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# 3. Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Testing
+
+- **Backend (`68` pytest tests against PostgreSQL + `pgvector` + Redis):**
+  ```bash
+  cd backend
+  pip install -r requirements-dev.txt
+  pytest -v
+  ```
+- **Frontend (`5` Vitest + React Testing Library tests):**
+  ```bash
+  cd frontend
+  npx vitest run
+  ```
+
+---
+
+## CreatorIQ MCP Server (Claude Desktop / IDE)
+
 ```json
 {
   "mcpServers": {

@@ -97,13 +97,20 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
             p = (a.platform or "other").capitalize()
             platform_counts[p] = platform_counts.get(p, 0) + a.followers
 
+        rates = [
+            p.analytics.engagement_rate
+            for a in active_accounts
+            for p in a.posts
+            if p.analytics and p.analytics.engagement_rate is not None
+        ]
+        avg_eng = f"{round(sum(rates) / len(rates), 2)}%" if rates else "—"
         creators_list.append({
             "name": c.creator_name or (c.user.name if c.user else f"Creator #{c.creator_id}"),
             "platform": main_plat,
             "followers": f"{c_followers:,}" if c_followers < 1000000 else f"{round(c_followers/1000000, 1)}M",
             "views": f"{c_views:,}" if c_views < 1000000 else f"{round(c_views/1000000, 1)}M",
-            "eng": "3.8%",
-            "growth": "+5.2%",
+            "eng": avg_eng,
+            "growth": "—",
         })
 
     tot_plat_followers = sum(platform_counts.values()) or 1
