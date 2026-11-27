@@ -49,3 +49,15 @@ def test_marketing_overview_accessible(client, h):
     r = client.get("/api/analytics/marketing/overview", headers=h["marketing"])
     assert r.status_code == 200
     assert "kpis" in r.json()
+
+
+def test_new_creator_starts_with_no_fake_channel(client):
+    from .conftest import auth, register
+
+    register(client, email="fresh_user@example.com", role="creator", name="Fresh Creator")
+    headers = auth(client, "fresh_user@example.com", "Pass1234")
+    r = client.get("/api/v1/analytics/overview", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["connected"] is False
+    assert body["channel_name"] is None

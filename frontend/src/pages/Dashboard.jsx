@@ -34,6 +34,8 @@ function CreatorDashboard() {
   const [loadErr, setLoadErr] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState({ ok: true, text: "" });
+  const [onboardPlatform, setOnboardPlatform] = useState("YouTube");
+  const [onboardHandle, setOnboardHandle] = useState("");
 
   const plat = platform === "All Platforms" ? "all" : platform.toLowerCase();
 
@@ -107,11 +109,100 @@ function CreatorDashboard() {
     }
   };
 
+  const handleOnboardSync = async (e) => {
+    e.preventDefault();
+    if (onboardPlatform === "LinkedIn") {
+      return handleLinkedInConnect();
+    }
+    const h = onboardHandle.trim();
+    if (!h) return;
+    setSyncing(true);
+    try {
+      const endpoint =
+        onboardPlatform === "Instagram"
+          ? "/api/v1/analytics/instagram/sync"
+          : "/api/v1/analytics/youtube/sync";
+      const payload = onboardPlatform === "Instagram" ? { username: h } : { channel_handle: h };
+      const res = await api.post(endpoint, payload);
+      setSyncMsg({ ok: true, text: res.data.message || `${onboardPlatform} synced!` });
+      setOnboardHandle("");
+      load();
+    } catch (err) {
+      setSyncMsg({ ok: false, text: errorMessage(err) });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (overview === null && !loadErr) {
+    return <article className="card" style={{ padding: 24 }}><p className="muted">Loading your CreatorIQ workspace...</p></article>;
+  }
+
+  if (overview && !overview.connected) {
+    return (
+      <section className="card" style={{ padding: 28, maxWidth: 680, margin: "12px auto" }}>
+        <span className="ai-badge">Getting Started</span>
+        <h2 style={{ margin: "10px 0 6px" }}>Connect Your First Platform</h2>
+        <p className="muted" style={{ marginBottom: 18 }}>
+          Choose a social media platform to sync your real analytics, audience growth, and AI insights.
+        </p>
+
+        <div className="chips" style={{ marginBottom: 16 }}>
+          {["YouTube", "Instagram", "LinkedIn"].map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={"chip" + (onboardPlatform === p ? " on" : "")}
+              onClick={() => setOnboardPlatform(p)}
+            >
+              <PlatformBadge name={p} size={18} />
+              {p}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleOnboardSync} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {onboardPlatform !== "LinkedIn" && (
+            <input
+              value={onboardHandle}
+              onChange={(e) => setOnboardHandle(e.target.value)}
+              placeholder={
+                onboardPlatform === "Instagram"
+                  ? "Enter Instagram username (e.g. hiteshchoudharyofficial)"
+                  : "Enter YouTube handle (e.g. @chaiaurcode)"
+              }
+              required
+              style={{ flex: 1, minWidth: 220, padding: "10px 14px", borderRadius: 10, border: "1px solid #cbd5e1" }}
+            />
+          )}
+          <button type="submit" className="btn-solid" disabled={syncing}>
+            {syncing ? "Syncing..." : onboardPlatform === "LinkedIn" ? "Connect LinkedIn" : `Sync ${onboardPlatform}`}
+          </button>
+        </form>
+
+        {syncMsg.text && (
+          <p className="sample-note" style={{ marginTop: 12, color: syncMsg.ok ? "#15803d" : "#b91c1c" }}>
+            {syncMsg.text}
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  const connectedNames = (overview?.platforms || []).map((p) => {
+    const n = (p.platform || "").toLowerCase();
+    if (n === "youtube") return "YouTube";
+    if (n === "instagram") return "Instagram";
+    if (n === "linkedin") return "LinkedIn";
+    return n;
+  });
+  const filterTabs = connectedNames.length > 1 ? ["All Platforms", ...connectedNames] : connectedNames;
+
   return (
     <>
       <div className="toolbar-split">
         <div className="chips" role="group" aria-label="Platform filter">
-          {PLATFORMS.map((p) => (
+          {filterTabs.map((p) => (
             <button key={p} className={"chip" + (platform === p ? " on" : "")} aria-pressed={platform === p} onClick={() => setPlatform(p)}>
               {p !== "All Platforms" && <PlatformBadge name={p} size={18} />}
               {p}

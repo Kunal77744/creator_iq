@@ -32,16 +32,8 @@ def _get_or_create_creator(user: User, db: Session) -> Creator:
 
 
 def _ensure_demo_data(creator: Creator, db: Session) -> None:
-    """Demo data ONLY when no YOUTUBE_API_KEY is configured. With a key, the user must sync a real channel."""
-    if YOUTUBE_API_KEY:
-        return
-    has = db.scalar(select(SocialAccount.account_id).where(
-        SocialAccount.creator_id == creator.creator_id, SocialAccount.platform == "youtube"))
-    if not has:
-        try:
-            sync_youtube_channel_to_db(db, creator.creator_id, "@techcreator")
-        except IntegrityError:
-            db.rollback()
+    """No-op: never auto-seed fake channels for users. Users start empty and sync real accounts."""
+    return
 
 
 def _accounts(creator: Creator, db: Session, platform: Optional[str]) -> list[SocialAccount]:

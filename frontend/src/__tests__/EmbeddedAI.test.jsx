@@ -17,6 +17,7 @@ import AIGrowthBrief from "../components/AIGrowthBrief.jsx";
 import AIDrawer from "../components/AIDrawer.jsx";
 import RevenuePage from "../pages/RevenuePage.jsx";
 import ContentAnalytics from "../pages/ContentAnalytics.jsx";
+import Dashboard from "../pages/Dashboard.jsx";
 
 vi.mock("../AuthContext.jsx", () => ({
   useAuth: () => ({
@@ -116,5 +117,29 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     fireEvent.click(analyzeBtn);
 
     expect(await screen.findByText(/Strong hook and tutorial retention/i)).toBeInTheDocument();
+  });
+
+  it("shows clean platform onboarding when new user has no connected accounts", async () => {
+    api.get.mockImplementation((url) => {
+      if (url.includes("/api/v1/analytics/overview")) {
+        return Promise.resolve({ data: { connected: false, platforms: [] } });
+      }
+      if (url.includes("/api/v1/analytics/posts")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes("/api/v1/ai/insights")) {
+        return Promise.resolve({ data: { has_data: false, summary: "Connect a channel", insights: [] } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/Connect Your First Platform/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "All Platforms" })).not.toBeInTheDocument();
   });
 });
