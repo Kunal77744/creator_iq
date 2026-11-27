@@ -2,7 +2,7 @@
 
 **Live App:** https://creatoriq-eight.vercel.app
 
-A full-stack, multi-role SaaS analytics platform for **Creators**, **Agencies**, **Marketing Teams**, and **Administrators** — featuring live YouTube Data API v3 sync, PostgreSQL + `pgvector` RAG, a Gemini native function-calling Growth Agent (with rule-based fallback), an MCP Server, Redis caching, Celery workers + beat, and Docker Compose orchestration.
+A full-stack, multi-role SaaS analytics platform for **Creators**, **Agencies**, **Marketing Teams**, and **Administrators** — featuring live YouTube Data API v3 sync (including `commentThreads` audience mining), PostgreSQL + `pgvector` hybrid RAG, a Gemini native function-calling Growth Agent (with rule-based fallback), an MCP Server, Redis caching, Celery workers + beat, and Docker Compose orchestration.
 
 ---
 
@@ -23,7 +23,7 @@ React (Vite + Recharts) ──▶ FastAPI (/api/v1/*) ──▶ PostgreSQL + pgv
 - **Frontend:** React 18, Vite 5, React Router, Recharts, Axios, Vitest + React Testing Library
 - **Backend:** FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, PyJWT, `bcrypt`, Celery, Redis
 - **Database:** PostgreSQL 16 + `pgvector` (Neon Cloud in production; `pgvector/pgvector:pg16` in Docker)
-- **AI & MCP:** `pgvector` cosine-similarity RAG + hybrid metric reranking, Google Gemini (`gemini-2.5-flash` & `text-embedding-004` when `LLM_API_KEY` is set, with deterministic fallback), and `FastMCP` server (`app.ai.mcp.server`)
+- **AI & MCP:** Hybrid SQL + `pgvector` cosine-similarity RAG (posts + YouTube `commentThreads`), Google Gemini (`gemini-3.8-flash` with `3.6-flash` / `2.5-flash` fallback & `gemini-embedding-001` 384-dim embeddings when `LLM_API_KEY` is set, with deterministic fallback), and `FastMCP` server (`app.ai.mcp.server`)
 - **DevOps & CI:** Docker, Docker Compose, GitHub Actions (`.github/workflows/ci.yml`), Vercel
 
 ---
@@ -83,7 +83,7 @@ npm run dev
 
 ## Testing
 
-- **Backend (`72` pytest tests against PostgreSQL + `pgvector` + Redis):**
+- **Backend (`73` pytest tests against PostgreSQL + `pgvector` + Redis):**
   ```bash
   cd backend
   pip install -r requirements-dev.txt
