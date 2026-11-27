@@ -60,6 +60,15 @@ def test_revenue_invalid_amount(client, h):
     assert r.status_code == 422
 
 
+def test_real_new_user_starts_with_empty_revenue(client):
+    register(client, email="world_creator@example.com", role="creator", name="World Creator")
+    wh = auth(client, "world_creator@example.com", "Pass1234")
+    r = client.get("/api/v1/revenue", headers=wh)
+    assert r.status_code == 200
+    assert r.json()["summary"]["total"] == 0
+    assert r.json()["entries"] == []
+
+
 # ---------- Notifications ----------
 def test_notifications_requires_auth(client):
     assert client.get("/api/notifications").status_code == 401

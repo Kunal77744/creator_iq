@@ -92,6 +92,17 @@ def test_rag_index_and_retrieve_with_citations(client, h):
     assert len(body["citations"]) > 0
     assert "FastAPI" in body["citations"][0]["title"] or "views" in body["answer"]
 
+    # Superlative query ("highest views") should rank highest-views post first
+    top_q = client.post(
+        "/api/v1/ai/rag-query",
+        json={"query": "Which video has the highest views?"},
+        headers=h["creator"],
+    )
+    assert top_q.status_code == 200
+    cites = top_q.json()["citations"]
+    assert len(cites) >= 2
+    assert cites[0]["views"] >= cites[1]["views"]
+
 
 def test_rag_multi_tenant_isolation(client, h):
     _seed_creator_posts()

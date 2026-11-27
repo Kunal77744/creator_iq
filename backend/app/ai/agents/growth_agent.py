@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from ..llm import generate_ai_text
 from .tools import (
     calculate_sponsorship_rate,
     get_channel_kpis,
@@ -60,8 +61,13 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
         else:
             sections.append("**Content Search:** No indexed posts yet — click 'Index Content' to enable RAG search.")
 
+    fallback_reply = "\n\n".join(sections)
+    llm_reply = generate_ai_text(
+        f"User question: {message}\n\nVerified CreatorIQ tool outputs:\n{fallback_reply}",
+        system_prompt="You are CreatorIQ Growth Agent. Answer clearly and concisely using ONLY the verified tool outputs above. Never invent metrics.",
+    )
     return {
-        "reply": "\n\n".join(sections),
+        "reply": llm_reply or fallback_reply,
         "tools_used": tools_used,
         "citations": citations,
     }

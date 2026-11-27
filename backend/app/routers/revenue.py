@@ -32,6 +32,8 @@ class RevenueCreate(BaseModel):
 
 
 def _seed_if_empty(user: User, db: Session) -> None:
+    if not user.email.endswith("@creatoriq.com"):
+        return
     exists = db.scalar(select(RevenueEntry.revenue_id).where(RevenueEntry.user_id == user.user_id))
     if exists:
         return

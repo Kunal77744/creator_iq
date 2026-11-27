@@ -7,15 +7,16 @@ from .embeddings import embed_text
 
 
 def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 4) -> list[dict]:
-    """Retrieve top-k chunks scoped strictly to user_id via pgvector cosine distance."""
+    """Retrieve top-k chunks scoped strictly to user_id via pgvector cosine distance + metric reranking."""
     query_vec = embed_text(query)
     dist_expr = ContentEmbedding.embedding.cosine_distance(query_vec)
 
+    fetch_limit = max(top_k * 5, 20)
     rows = db.execute(
         select(ContentEmbedding, dist_expr.label("distance"))
         .where(ContentEmbedding.user_id == user_id)
         .order_by(dist_expr.asc())
-        .limit(top_k)
+        .limit(fetch_limit)
     ).all()
 
     results = []
@@ -32,7 +33,15 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
                 "score": round(max(0.0, 1.0 - float(distance)), 4),
             }
         )
-    return results
+
+    q_lower = (query or "").lower()
+    if any(w in q_lower for w in ("highest", "top", "best", "most", "max")):
+        if "engagement" in q_lower and "view" not in q_lower:
+            results.sort(key=lambda r: (r["engagement_rate"], r["views"]), reverse=True)
+        else:
+            results.sort(key=lambda r: (r["views"], r["engagement_rate"]), reverse=True)
+
+    return results[:top_k]
 
 
 def answer_rag_query(db: Session, user_id: int, query: str) -> dict:

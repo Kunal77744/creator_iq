@@ -10,6 +10,8 @@ router = APIRouter(prefix="/notifications", tags=["Notifications & Alerts"])
 
 
 def _seed_if_empty(user: User, db: Session) -> None:
+    if not user.email.endswith("@creatoriq.com"):
+        return
     exists = db.scalar(select(Notification.notification_id).where(Notification.user_id == user.user_id))
     if exists:
         return
