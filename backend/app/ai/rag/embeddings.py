@@ -2,11 +2,17 @@ import hashlib
 import math
 import re
 
+from ..llm import embed_with_llm
+
 EMBEDDING_DIM = 384
 
 
 def embed_text(text: str) -> list[float]:
-    """Generate a normalized 384-dim semantic/lexical vector embedding."""
+    """Generate a 384-dim vector embedding (uses Gemini text-embedding-004 if configured, else deterministic)."""
+    llm_vec = embed_with_llm(text or "", dimensions=EMBEDDING_DIM)
+    if llm_vec is not None:
+        return llm_vec
+
     vec = [0.0] * EMBEDDING_DIM
     tokens = re.findall(r"[a-z0-9]+", (text or "").lower())
     if not tokens:

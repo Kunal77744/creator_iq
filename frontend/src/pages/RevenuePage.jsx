@@ -10,6 +10,7 @@ export default function RevenuePage() {
   const [platform, setPlatform] = useState("YouTube");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("paid");
+  const [estimateNote, setEstimateNote] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -20,6 +21,20 @@ export default function RevenuePage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  async function estimateRate() {
+    setErr("");
+    try {
+      const res = await api.get("/api/v1/ai/sponsorship-estimate");
+      const rate = Math.round(res.data.recommended_rate_inr || 0);
+      setAmount(String(rate));
+      setSource("sponsorship");
+      if (!title.trim()) setTitle("AI Estimated Brand Sponsorship");
+      setEstimateNote(`AI suggested ₹${rate.toLocaleString()} (${res.data.basis})`);
+    } catch (e2) {
+      setErr(errorMessage(e2));
+    }
+  }
 
   async function addEntry(e) {
     e.preventDefault();
@@ -93,7 +108,11 @@ export default function RevenuePage() {
         </article>
 
         <article className="card">
-          <h3 style={{ marginBottom: 12 }}>Add Revenue / Sponsorship</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3>Add Revenue / Sponsorship</h3>
+            <button type="button" className="btn-ai" onClick={estimateRate}>AI Deal Estimator</button>
+          </div>
+          {estimateNote && <p className="muted" style={{ marginBottom: 8, color: "#4f46e5" }}>{estimateNote}</p>}
           <form onSubmit={addEntry} style={{ display: "grid", gap: 10 }}>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Campaign or revenue title" required style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1" }} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>

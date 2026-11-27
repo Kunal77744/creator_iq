@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { Icon } from "./Icons";
 import { useDateRange } from "./DateRangeContext";
 
-export default function Topbar({ user, onLogout }) {
+export default function Topbar({ user, onLogout, onOpenAI }) {
+  const navigate = useNavigate();
   const { days, setDays } = useDateRange();
   const initials = user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
   return (
@@ -21,7 +23,13 @@ export default function Topbar({ user, onLogout }) {
           </select>
         </label>
 
-        <button className="icon-btn" aria-label="Notifications">
+        {onOpenAI && (
+          <button type="button" className="btn-ai" onClick={onOpenAI}>
+            Ask AI
+          </button>
+        )}
+
+        <button className="icon-btn" aria-label="Notifications" onClick={() => navigate("/notifications")}>
           <Icon name="bell" />
           <span className="dot" />
         </button>

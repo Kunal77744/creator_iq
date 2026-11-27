@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..ai.rag.ingestion import index_creator_content
 from ..config import YOUTUBE_API_KEY
 from ..core.redis import cache_delete_prefix, cache_get, cache_set
 from ..database import get_db
@@ -103,6 +104,7 @@ def sync_youtube(data: SyncRequest, current_user: User = Depends(get_current_use
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "This channel is already connected to another creator.")
     cache_delete_prefix(f"analytics:overview:{current_user.user_id}:")
+    index_creator_content(db, current_user.user_id)
     return {
         "status": "success",
         "message": f"{account.username} synced ({'live' if account.is_live else 'synced'} data)",

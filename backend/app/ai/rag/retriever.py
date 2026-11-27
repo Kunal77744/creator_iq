@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...models import ContentEmbedding
+from ..llm import generate_ai_text
 from .embeddings import embed_text
 
 
@@ -42,6 +43,17 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
             "answer": "No indexed content found for your account yet. Click 'Index Content' after syncing a social channel to enable grounded AI insights.",
             "citations": [],
         }
+
+    context = "\n".join(
+        f"- [{h['platform']}] {h['title']} ({h['views']:,} views, {h['engagement_rate']}% eng)"
+        for h in hits
+    )
+    llm_answer = generate_ai_text(
+        f"User question: {query}\n\nRetrieved creator content:\n{context}",
+        system_prompt="You are CreatorIQ AI. Answer concisely using ONLY the retrieved creator metrics above.",
+    )
+    if llm_answer:
+        return {"answer": llm_answer, "citations": hits}
 
     lines = ["Based on your indexed creator content in PostgreSQL:"]
     for i, h in enumerate(hits, 1):

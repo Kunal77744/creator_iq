@@ -11,6 +11,8 @@ export default function ContentAnalytics() {
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
   const [cmp, setCmp] = useState(null);
+  const [aiPost, setAiPost] = useState(null);
+  const [analyzingId, setAnalyzingId] = useState(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -39,6 +41,19 @@ export default function ContentAnalytics() {
       setCmp(res.data);
     } catch (e) {
       setErr(errorMessage(e));
+    }
+  }
+
+  async function analyzePost(postId) {
+    setAnalyzingId(postId);
+    setErr("");
+    try {
+      const res = await api.post(`/api/v1/ai/analyze-post/${postId}`);
+      setAiPost(res.data);
+    } catch (e) {
+      setErr(errorMessage(e));
+    } finally {
+      setAnalyzingId(null);
     }
   }
 
@@ -111,12 +126,12 @@ export default function ContentAnalytics() {
         <div className="table-wrap">
           <table className="users-table">
             <thead>
-              <tr><th>Title</th><th>Platform</th><th>Views</th><th>Likes</th><th>Comments</th><th>Engagement</th></tr>
+              <tr><th>Title</th><th>Platform</th><th>Views</th><th>Likes</th><th>Comments</th><th>Engagement</th><th>AI</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="muted" style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan="7" className="muted" style={{ textAlign: "center", padding: 24 }}>
                     No content found. Sync a social channel in Social Accounts to populate real metrics.
                   </td>
                 </tr>
@@ -128,12 +143,40 @@ export default function ContentAnalytics() {
                   <td>{(p.likes || 0).toLocaleString()}</td>
                   <td>{(p.comments || 0).toLocaleString()}</td>
                   <td>{p.engagement_rate}%</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn-link"
+                      disabled={analyzingId === p.post_id}
+                      onClick={() => analyzePost(p.post_id)}
+                    >
+                      {analyzingId === p.post_id ? "Analyzing..." : "Analyze with AI"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </article>
+
+      {aiPost && (
+        <article className="ai-brief" style={{ marginTop: 16 }}>
+          <div className="ai-brief-head">
+            <div>
+              <span className="ai-badge">RAG Deep-Dive</span>
+              <h3>{aiPost.title}</h3>
+            </div>
+            <button type="button" className="btn-link" onClick={() => setAiPost(null)}>Dismiss</button>
+          </div>
+          <p className="ai-brief-summary">{aiPost.analysis}</p>
+          {Array.isArray(aiPost.next_ideas) && (
+            <ul className="ai-brief-list">
+              {aiPost.next_ideas.map((idea, idx) => <li key={idx}>Next Idea: {idea}</li>)}
+            </ul>
+          )}
+        </article>
+      )}
     </AppLayout>
   );
 }

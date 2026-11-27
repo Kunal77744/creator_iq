@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import api, { errorMessage } from "../api";
 import { useAuth } from "../AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout.jsx";
+import AIGrowthBrief from "../components/AIGrowthBrief.jsx";
 import { useDateRange } from "../dashboard/DateRangeContext.jsx";
 import { Icon, PlatformBadge } from "../dashboard/Icons.jsx";
 import { AdminDashboard, AgencyDashboard, MarketingDashboard } from "../dashboard/RoleDashboards.jsx";
@@ -24,6 +26,7 @@ const SUBTITLE = {
 };
 
 function CreatorDashboard() {
+  const navigate = useNavigate();
   const { days } = useDateRange();
   const [platform, setPlatform] = useState("All Platforms");
   const [posts, setPosts] = useState([]);
@@ -139,6 +142,8 @@ function CreatorDashboard() {
         {syncMsg.text && <span className={"sample-pill " + (syncMsg.ok ? "live" : "")} style={syncMsg.ok ? {} : { background: "#fee2e2", color: "#b91c1c" }}>{syncMsg.ok ? "✓ " : "⚠ "}{syncMsg.text}</span>}
         {loadErr && <span className="sample-pill" style={{ background: "#fee2e2", color: "#b91c1c" }}>⚠ {loadErr}</span>}
       </p>
+
+      <AIGrowthBrief onOpenCopilot={() => navigate("/ai-copilot")} />
 
       <KpiRow overview={overview} platform={platform} days={days} />
 
