@@ -44,3 +44,28 @@ def test_mcp_server_exposes_creatoriq_tools():
         "calculate_sponsorship_rate",
     }
     assert expected.issubset(tool_names)
+
+
+def test_agent_executes_llm_function_calling_loop(client, h, monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-gemini-key")
+
+    calls = {"step": 0}
+
+    def fake_call_gemini_with_tools(contents, function_declarations, system_prompt=""):
+        calls["step"] += 1
+        if calls["step"] == 1:
+            return [{"functionCall": {"name": "calculate_sponsorship_rate", "args": {}}}]
+        return [{"text": "Based on your live metrics, your recommended sponsorship rate is ready."}]
+
+    monkeypatch.setattr("app.ai.agents.growth_agent.call_gemini_with_tools", fake_call_gemini_with_tools)
+
+    r = client.post(
+        "/api/v1/ai/agent-chat",
+        json={"message": "What should I quote a brand?"},
+        headers=h["creator"],
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "llm_function_calling"
+    assert "calculate_sponsorship_rate" in body["tools_used"]
+    assert "recommended sponsorship rate" in body["reply"].lower()

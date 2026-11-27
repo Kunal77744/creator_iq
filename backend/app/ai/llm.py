@@ -75,3 +75,39 @@ def embed_with_llm(text: str, dimensions: int = 384) -> Optional[list[float]]:
     except Exception as exc:
         log.warning("Gemini embed_with_llm fallback triggered: %s", exc)
     return None
+
+
+def call_gemini_with_tools(
+    contents: list[dict],
+    function_declarations: list[dict],
+    system_prompt: str = "",
+) -> Optional[list[dict]]:
+    """Call Gemini generateContent with native functionDeclarations for agentic tool calling."""
+    key = _api_key()
+    if not key:
+        return None
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+    payload: dict = {
+        "contents": contents,
+        "tools": [{"functionDeclarations": function_declarations}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600},
+    }
+    if system_prompt:
+        payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        candidates = data.get("candidates") or []
+        if candidates:
+            return candidates[0].get("content", {}).get("parts") or None
+    except Exception as exc:
+        log.warning("Gemini function-calling fallback triggered: %s", exc)
+    return None

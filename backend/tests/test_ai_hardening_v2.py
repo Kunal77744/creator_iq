@@ -23,7 +23,7 @@ def test_ai_responses_include_transparent_source_field(client, h):
 
     ag = client.post("/api/v1/ai/agent-chat", json={"message": "Give me my KPIs"}, headers=h["creator"])
     assert ag.status_code == 200
-    assert ag.json()["source"] in ("llm", "rule_based_fallback")
+    assert ag.json()["source"] in ("llm", "llm_function_calling", "rule_based_fallback")
 
 
 def test_rag_superlative_finds_true_top_video_beyond_20_posts(client, h):
