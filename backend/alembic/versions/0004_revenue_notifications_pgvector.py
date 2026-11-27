@@ -11,6 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
 
+# revision identifiers, used by Alembic.
 revision: str = "0004"
 down_revision: Union[str, Sequence[str], None] = "0003"
 branch_labels: Union[str, Sequence[str], None] = None
@@ -18,8 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Enable pgvector and create revenues, notifications, and content_embeddings tables."""
     op.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
+    # Creator/user revenue entries
     op.create_table(
         "revenues",
         sa.Column("revenue_id", sa.Integer(), primary_key=True),
@@ -34,6 +37,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_revenues_user_id", "revenues", ["user_id"])
 
+    # In-app user notifications
     op.create_table(
         "notifications",
         sa.Column("notification_id", sa.Integer(), primary_key=True),
@@ -46,6 +50,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
 
+    # 384-dimensional vector embeddings for post content search
     op.create_table(
         "content_embeddings",
         sa.Column("embedding_id", sa.Integer(), primary_key=True),
@@ -61,6 +66,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop content_embeddings, notifications, and revenues tables and their indexes."""
     op.drop_index("ix_content_embeddings_post_id", table_name="content_embeddings")
     op.drop_index("ix_content_embeddings_user_id", table_name="content_embeddings")
     op.drop_table("content_embeddings")

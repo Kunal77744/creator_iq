@@ -1,3 +1,4 @@
+// Main Dashboard page: routes to role-specific views and provides the creator analytics & onboarding workspace.
 import { useCallback, useEffect, useState } from "react";
 import api, { errorMessage } from "../api";
 import { useAuth } from "../AuthContext.jsx";
@@ -18,6 +19,7 @@ import {
 
 const PLATFORMS = ["All Platforms", "YouTube", "Instagram", "LinkedIn"];
 
+// Role-specific subtitle messages shown beneath the greeting
 const SUBTITLE = {
   creator: "Here's an overview of your content performance across all platforms.",
   agency: "Here's the combined performance of the creators you manage.",
@@ -25,6 +27,7 @@ const SUBTITLE = {
   admin: "Here's an overview of everyone using CreatorIQ.",
 };
 
+// Creator-specific dashboard with platform filters, onboarding flow, AI brief, and analytics widgets
 function CreatorDashboard() {
   const navigate = useNavigate();
   const { days } = useDateRange();
@@ -39,6 +42,7 @@ function CreatorDashboard() {
 
   const plat = platform === "All Platforms" ? "all" : platform.toLowerCase();
 
+  // Fetch overview KPIs and top posts for the selected platform and date range
   const load = useCallback(() => {
     setLoadErr("");
     api.get(`/api/v1/analytics/overview?platform=${plat}&days=${days}`)
@@ -51,6 +55,7 @@ function CreatorDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Handle LinkedIn OAuth redirect callback query parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("linkedin_synced") === "true") {
@@ -64,6 +69,7 @@ function CreatorDashboard() {
     }
   }, [load]);
 
+  // Prompt for YouTube channel handle and sync channel data
   const handleSync = async () => {
     const h = window.prompt("Enter YouTube channel handle (e.g. @chaiaurcode) or channel ID (UC...):", overview?.channel_name || "");
     if (!h) return;
@@ -80,6 +86,7 @@ function CreatorDashboard() {
     }
   };
 
+  // Prompt for Instagram username and sync profile data
   const handleInstagramSync = async () => {
     const u = window.prompt("Enter Instagram username (e.g. hiteshchoudharyofficial):", "hiteshchoudharyofficial");
     if (!u) return;
@@ -96,6 +103,7 @@ function CreatorDashboard() {
     }
   };
 
+  // Start LinkedIn OAuth login flow by redirecting to the provider's auth URL
   const handleLinkedInConnect = async () => {
     const token = localStorage.getItem("creatoriq_token");
     if (!token) return;
@@ -109,6 +117,7 @@ function CreatorDashboard() {
     }
   };
 
+  // Submit handler for the first-time onboarding platform connection form
   const handleOnboardSync = async (e) => {
     e.preventDefault();
     if (onboardPlatform === "LinkedIn") {
@@ -134,10 +143,12 @@ function CreatorDashboard() {
     }
   };
 
+  // Show loading placeholder while initial overview data is being fetched
   if (overview === null && !loadErr) {
     return <article className="card" style={{ padding: 24 }}><p className="muted">Loading your CreatorIQ workspace...</p></article>;
   }
 
+  // Show onboarding card when the creator has not connected any social platform yet
   if (overview && !overview.connected) {
     return (
       <section className="card" style={{ padding: 28, maxWidth: 680, margin: "12px auto" }}>
@@ -189,6 +200,7 @@ function CreatorDashboard() {
     );
   }
 
+  // Build platform filter chips from the creator's connected accounts
   const connectedNames = (overview?.platforms || []).map((p) => {
     const n = (p.platform || "").toLowerCase();
     if (n === "youtube") return "YouTube";
@@ -200,6 +212,7 @@ function CreatorDashboard() {
 
   return (
     <>
+      {/* Platform filter chips and account sync navigation button */}
       <div className="toolbar-split">
         <div className="chips" role="group" aria-label="Platform filter">
           {filterTabs.map((p) => (
@@ -216,6 +229,7 @@ function CreatorDashboard() {
         </div>
       </div>
 
+      {/* Sync status bar showing active channel, last sync timestamp, and any errors */}
       <p className="sample-note">
         {overview?.connected ? (
           <>
@@ -231,15 +245,19 @@ function CreatorDashboard() {
         {loadErr && <span className="sample-pill" style={{ background: "#fee2e2", color: "#b91c1c" }}>⚠ {loadErr}</span>}
       </p>
 
+      {/* AI Growth Brief summary card */}
       <AIGrowthBrief onOpenCopilot={() => navigate("/ai-copilot")} />
 
+      {/* Top KPI summary row */}
       <KpiRow overview={overview} platform={platform} days={days} />
 
+      {/* Primary charts row: follower growth and content performance */}
       <div className="row row-a">
         <FollowerGrowth platform={platform} days={days} />
         <ContentPerformance platform={platform} days={days} />
       </div>
 
+      {/* Secondary row: top posts table alongside audience and revenue widgets */}
       <div className="row row-b">
         <TopPosts posts={posts} />
         <div className="stack">
@@ -251,8 +269,10 @@ function CreatorDashboard() {
   );
 }
 
+// Map user roles to their corresponding dashboard view component
 const VIEWS = { creator: CreatorDashboard, agency: AgencyDashboard, marketing_team: MarketingDashboard, admin: AdminDashboard };
 
+// Top-level Dashboard page rendering a time-based greeting and the user's role view
 export default function Dashboard() {
   const { user } = useAuth();
   const View = VIEWS[user.role] || CreatorDashboard;

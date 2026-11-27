@@ -1,9 +1,11 @@
+// Login page: authenticates existing users and redirects to the dashboard.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout.jsx";
 import { useAuth } from "../AuthContext.jsx";
 import { errorMessage } from "../api";
 
+// Login form component handling email/password sign-in
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Submit credentials to AuthContext and navigate to dashboard on success
   async function onSubmit(e) {
     e.preventDefault();
     setError("");
@@ -31,6 +34,7 @@ export default function Login() {
       <h1>Welcome back</h1>
       <p className="sub">Log in to see how your content is performing.</p>
 
+      {/* Email and password login form */}
       <form onSubmit={onSubmit} noValidate>
         <label>
           Email
@@ -48,6 +52,7 @@ export default function Login() {
         </button>
       </form>
 
+      {/* Link to registration page for new users */}
       <p className="switch">
         New to CreatorIQ? <Link to="/register">Create an account</Link>
       </p>

@@ -1,3 +1,4 @@
+"""Alembic migration environment configuration for CreatorIQ."""
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -22,6 +23,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
+# Use the unpooled database URL for DDL migrations and escape '%' for configparser
 config.set_main_option("sqlalchemy.url", DATABASE_URL_UNPOOLED.replace("%", "%%"))
 target_metadata = Base.metadata
 
@@ -68,6 +70,7 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    # Enable batch mode for SQLite compatibility when altering tables
     with connectable.connect() as connection:
         context.configure(
             connection=connection,

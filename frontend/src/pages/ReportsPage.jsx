@@ -1,11 +1,14 @@
+// Reports & Export page: lets users download CSV reports and print/save PDF summaries.
 import { useState } from "react";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// ReportsPage component providing CSV export buttons and browser print-to-PDF
 export default function ReportsPage() {
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
 
+  // Request a CSV blob from the backend and trigger a browser file download
   async function downloadCsv(type) {
     setBusy(type); setErr("");
     try {
@@ -27,6 +30,7 @@ export default function ReportsPage() {
 
   return (
     <AppLayout>
+      {/* Page header */}
       <div className="hello">
         <div>
           <h1>Reports & Export</h1>
@@ -36,6 +40,7 @@ export default function ReportsPage() {
 
       {err && <div className="error" role="alert">{err}</div>}
 
+      {/* Export cards grid for analytics, revenue, platform comparison, and PDF */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
         <article className="card">
           <h3>Content Analytics Report</h3>

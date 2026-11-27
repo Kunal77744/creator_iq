@@ -1,3 +1,5 @@
+"""Authentication endpoints for registration, password login, current user lookup, and LinkedIn OAuth."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -15,6 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 def to_user_out(user: User) -> UserOut:
+    """Convert a User ORM model into the public UserOut schema."""
     return UserOut(
         user_id=user.user_id,
         name=user.name,
@@ -28,10 +31,13 @@ def to_user_out(user: User) -> UserOut:
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    """Register a new user account and create its matching Creator or Agency profile."""
+    # Reject duplicate email registrations (case-insensitive)
     email = data.email.lower()
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="An account with this email already exists")
 
+    # Hash password and initialize role-specific profile
     user = User(name=data.name, email=email, password_hash=hash_password(data.password), role=data.role)
     # Every creator / agency account gets its (empty) profile row straight away.
     if data.role == CREATOR:
@@ -47,6 +53,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenOut, dependencies=[Depends(rate_limit("login", limit=30, window_seconds=60))])
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Authenticate with email/password and return a JWT access token."""
     # OAuth2 password flow: the form field "username" carries the email.
     user = db.scalar(select(User).where(User.email == form.username.strip().lower()))
     if user is None or not verify_password(form.password, user.password_hash):
@@ -64,6 +71,7 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
+    """Return the currently authenticated user's profile."""
     return to_user_out(current_user)
 
 
@@ -88,6 +96,7 @@ def linkedin_callback(code: str, state: str, db: Session = Depends(get_db)):
     from ..config import FRONTEND_ORIGIN
     from ..security import decode_access_token
 
+    # Validate the JWT passed in `state` to identify the returning user
     frontend_base = FRONTEND_ORIGIN.split(",")[0].strip().rstrip("/") or "http://localhost:5173"
     try:
         payload = decode_access_token(state)
@@ -96,6 +105,7 @@ def linkedin_callback(code: str, state: str, db: Session = Depends(get_db)):
     if not payload:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid state token")
 
+    # Look up the user and ensure they have a Creator profile row
     user_id = int(payload.get("sub", 0))
     user = db.get(User, user_id)
     if not user:
@@ -109,6 +119,7 @@ def linkedin_callback(code: str, state: str, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(creator)
 
+    # Exchange the OAuth code for an access token, fetch profile info, and sync to DB
     try:
         token_data = exchange_code_for_token(code)
         access_token = token_data.get("access_token")

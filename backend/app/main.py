@@ -1,3 +1,4 @@
+"""FastAPI application entry point, router registration, CORS setup, and health check."""
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -32,6 +33,7 @@ def _resync_all() -> None:
 
 
 async def _sync_loop() -> None:
+    """Periodically run YouTube channel re-syncs in a background thread."""
     while True:
         await asyncio.sleep(SYNC_INTERVAL_MINUTES * 60)
         await asyncio.to_thread(_resync_all)
@@ -39,6 +41,7 @@ async def _sync_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Handle application startup tasks such as optional demo user seeding."""
     # Tables are managed strictly by Alembic migrations (`alembic upgrade head`).
     # Scheduled YouTube sync is handled by Celery Beat + Worker (`app.workers.tasks`).
     if SEED_DEMO_USERS:
@@ -52,6 +55,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CreatorIQ API", version="0.2.0", lifespan=lifespan)
 
+# Configure CORS for the configured frontend origin(s)
 _allowed_origins = [o.strip() for o in FRONTEND_ORIGIN.split(",") if o.strip()] or ["http://localhost:5173"]
 app.add_middleware(
     CORSMiddleware,
@@ -61,6 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount all feature routers under /api/v1 (and /api for backwards compatibility)
 v1_router = APIRouter(prefix="/api/v1")
 legacy_router = APIRouter(prefix="/api", include_in_schema=False)
 
@@ -75,6 +80,7 @@ app.include_router(legacy_router)
 @app.get("/api/v1/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"], include_in_schema=False)
 def health():
+    """Check database and Redis connectivity and report overall service status."""
     db_ok = False
     try:
         with SessionLocal() as db:

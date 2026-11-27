@@ -1,3 +1,5 @@
+"""Pytest configuration, isolated PostgreSQL/Redis fixtures, and auth helper functions."""
+
 import os
 
 # Must be set before the app is imported.
@@ -36,16 +38,19 @@ def client():
 
 
 def login(client, email, password=DEMO_PASSWORD):
+    """Post OAuth2 login form credentials and return the raw response."""
     return client.post("/api/auth/login", data={"username": email, "password": password})
 
 
 def auth(client, email, password=DEMO_PASSWORD):
+    """Log in a user and return a Bearer Authorization header dict."""
     r = login(client, email, password)
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 def register(client, **over):
+    """Register a new test user with default values merged with any overrides."""
     body = {"name": "Test User", "email": "new@example.com", "password": "Pass1234", "role": "creator"}
     body.update(over)
     return client.post("/api/auth/register", json=body)

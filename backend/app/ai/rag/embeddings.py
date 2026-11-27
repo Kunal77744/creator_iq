@@ -1,3 +1,5 @@
+"""Vector embedding generator using Gemini embeddings with a deterministic hash-based fallback."""
+
 import hashlib
 import math
 import re
@@ -13,6 +15,7 @@ def embed_text(text: str) -> list[float]:
     if llm_vec is not None:
         return llm_vec
 
+    # Fall back to deterministic feature hashing when Gemini embeddings are unavailable
     vec = [0.0] * EMBEDDING_DIM
     tokens = re.findall(r"[a-z0-9]+", (text or "").lower())
     if not tokens:
@@ -30,6 +33,7 @@ def embed_text(text: str) -> list[float]:
         sign = 1.0 if (digest[4] % 2 == 0) else -1.0
         vec[idx] += sign
 
+    # L2-normalize the vector so cosine similarity works consistently
     norm = math.sqrt(sum(v * v for v in vec))
     if norm > 0:
         vec = [v / norm for v in vec]

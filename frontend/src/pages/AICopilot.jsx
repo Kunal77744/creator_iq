@@ -1,7 +1,9 @@
+// AI Growth Copilot page: provides an interactive chat interface for the Growth Agent and pgvector RAG search.
 import { useState } from "react";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// Preset starter questions shown as clickable chips above the chat box
 const QUICK_PROMPTS = [
   "What are viewers asking in my YouTube comments? Suggest my next video idea",
   "Give me my channel KPIs, revenue summary, and recommended sponsorship rate",
@@ -9,6 +11,7 @@ const QUICK_PROMPTS = [
   "How much should I charge for a brand sponsorship?",
 ];
 
+// Main AI Copilot page component supporting Growth Agent and RAG Search modes
 export default function AICopilot() {
   const [mode, setMode] = useState("agent"); // "agent" | "rag"
   const [input, setInput] = useState("");
@@ -18,6 +21,7 @@ export default function AICopilot() {
   const [indexMsg, setIndexMsg] = useState("");
   const [err, setErr] = useState("");
 
+  // Trigger backend indexing of creator content and comments into PostgreSQL pgvector
   async function handleIndex() {
     setIndexing(true);
     setErr("");
@@ -32,6 +36,7 @@ export default function AICopilot() {
     }
   }
 
+  // Send a user prompt to either the Growth Agent or the RAG query endpoint
   async function sendPrompt(text) {
     const q = (text ?? input).trim();
     if (!q || busy) return;
@@ -42,6 +47,7 @@ export default function AICopilot() {
 
     try {
       if (mode === "agent") {
+        // Growth Agent mode: calls tool-enabled chat endpoint
         const res = await api.post("/api/v1/ai/agent-chat", { message: q });
         setMessages((prev) => [
           ...prev,
@@ -53,6 +59,7 @@ export default function AICopilot() {
           },
         ]);
       } else {
+        // RAG Search mode: queries vector-indexed content directly
         const res = await api.post("/api/v1/ai/rag-query", { query: q });
         setMessages((prev) => [
           ...prev,
@@ -73,6 +80,7 @@ export default function AICopilot() {
 
   return (
     <AppLayout>
+      {/* Page header with mode switcher and content indexing trigger */}
       <div className="hello">
         <div>
           <h1>AI Growth Copilot</h1>
@@ -107,6 +115,7 @@ export default function AICopilot() {
         </div>
       </div>
 
+      {/* Error and indexing status banners */}
       {err && <div className="error" role="alert">{err}</div>}
       {indexMsg && (
         <div className="card" style={{ borderLeft: "4px solid #22c55e", marginBottom: 16 }}>
@@ -114,6 +123,7 @@ export default function AICopilot() {
         </div>
       )}
 
+      {/* Quick prompt suggestion chips */}
       <article className="card" style={{ marginBottom: 16 }}>
         <p className="muted" style={{ marginBottom: 10 }}>Quick Prompts:</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -137,6 +147,7 @@ export default function AICopilot() {
         </div>
       </article>
 
+      {/* Chat message history and prompt submission form */}
       <article className="card" style={{ minHeight: 320, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16 }}>
         <div style={{ display: "grid", gap: 12 }}>
           {messages.length === 0 ? (
@@ -162,6 +173,7 @@ export default function AICopilot() {
                 </div>
                 <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{m.text}</div>
 
+                {/* Badges for backend tools invoked by the AI */}
                 {m.tools && m.tools.length > 0 && (
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                     {m.tools.map((t) => (
@@ -181,6 +193,7 @@ export default function AICopilot() {
                   </div>
                 )}
 
+                {/* Source citations retrieved from pgvector */}
                 {m.citations && m.citations.length > 0 && (
                   <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Source Citations:</div>
@@ -208,6 +221,7 @@ export default function AICopilot() {
           )}
         </div>
 
+        {/* Prompt input form */}
         <form
           onSubmit={(e) => {
             e.preventDefault();

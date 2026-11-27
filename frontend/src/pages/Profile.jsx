@@ -1,9 +1,11 @@
+// Profile page: lets creators and agencies edit their public profile details and view linked creators.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// Role-specific form schemas for creator and agency profile endpoints
 const FORMS = {
   creator: {
     url: "/api/v1/creators/me",
@@ -35,6 +37,7 @@ const FORMS = {
   },
 };
 
+// Profile page component supporting creator/agency editing and basic info view for other roles
 export default function Profile() {
   const { user } = useAuth();
   const cfg = FORMS[user.role];
@@ -46,6 +49,7 @@ export default function Profile() {
   const [busy, setBusy] = useState(false);
   const [imgBroken, setImgBroken] = useState(false);
 
+  // Load profile data (and managed creators list for agencies) when role config is present
   useEffect(() => {
     if (!cfg) return;
     api.get(cfg.url)
@@ -57,8 +61,10 @@ export default function Profile() {
     }
   }, [cfg, user.role]);
 
+  // Update a single profile field and clear the saved confirmation banner
   const set = (key) => (e) => { setSaved(false); setData({ ...data, [key]: e.target.value }); };
 
+  // Save updated profile fields to the backend
   async function onSubmit(e) {
     e.preventDefault();
     setError("");
@@ -108,6 +114,7 @@ export default function Profile() {
 
       {data && (
         <div className="profile-grid">
+          {/* Editable profile form */}
           <article className="card form-card">
             <form onSubmit={onSubmit} noValidate>
               {cfg.fields.map(([key, label, type, ph]) => (
@@ -124,6 +131,7 @@ export default function Profile() {
             </form>
           </article>
 
+          {/* Identity preview card and agency managed creators list */}
           <div className="stack">
             <article className="card id-card">
               {img && !imgBroken

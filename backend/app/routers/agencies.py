@@ -1,3 +1,5 @@
+"""Agency profile endpoints for managing agency details, linked creators, and agency overview metrics."""
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,6 +14,7 @@ router = APIRouter(prefix="/agencies", tags=["Agency profile"])
 
 
 def _own_agency(user: User, db: Session) -> Agency:
+    """Return the logged-in user's Agency row, creating an empty one if missing."""
     agency = db.scalar(select(Agency).where(Agency.user_id == user.user_id))
     if agency is None:
         agency = Agency(user_id=user.user_id)
@@ -22,6 +25,7 @@ def _own_agency(user: User, db: Session) -> Agency:
 
 
 def _get_or_404(agency_id: int, db: Session) -> Agency:
+    """Fetch an Agency by ID or raise 404 if it does not exist."""
     agency = db.get(Agency, agency_id)
     if agency is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Agency profile not found")
@@ -29,6 +33,7 @@ def _get_or_404(agency_id: int, db: Session) -> Agency:
 
 
 def _apply(agency: Agency, data: AgencyUpdate, db: Session) -> Agency:
+    """Apply partial updates from AgencyUpdate to the Agency record and commit."""
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(agency, field, value)
     db.commit()
@@ -38,6 +43,7 @@ def _apply(agency: Agency, data: AgencyUpdate, db: Session) -> Agency:
 
 @router.get("/me", response_model=AgencyOut)
 def get_my_profile(user: User = Depends(require_roles(AGENCY)), db: Session = Depends(get_db)):
+    """Return the current agency user's profile."""
     return _own_agency(user, db)
 
 
@@ -53,6 +59,8 @@ def update_my_profile(
 
 @router.get("/me/overview")
 def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session = Depends(get_db)):
+    """Aggregate KPIs, creator summaries, and platform distribution for the agency dashboard."""
+    # Fetch all creators linked to this agency
     agency = _own_agency(user, db)
     stmt = (
         select(Creator)
@@ -62,6 +70,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
     )
     creators = db.scalars(stmt).all()
 
+    # Return an empty-state payload if no creators are linked yet
     if not creators:
         return {
             "has_creators": False,
@@ -80,6 +89,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
             "performance": [],
         }
 
+    # Accumulate follower, view, and engagement metrics across all linked creators
     total_followers = 0
     total_views = 0
     platform_counts = {}
@@ -97,6 +107,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
             p = (a.platform or "other").capitalize()
             platform_counts[p] = platform_counts.get(p, 0) + a.followers
 
+        # Compute average engagement rate across the creator's posts
         rates = [
             p.analytics.engagement_rate
             for a in active_accounts
@@ -113,6 +124,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
             "growth": "—",
         })
 
+    # Convert platform follower counts into percentage shares
     tot_plat_followers = sum(platform_counts.values()) or 1
     platform_colors = {"Youtube": "#ef4444", "Instagram": "#d946a8", "Linkedin": "#2563eb"}
     platform_dist = [
@@ -120,6 +132,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
         for p, cnt in platform_counts.items()
     ]
 
+    # Build summary KPI cards for the agency overview
     kpis = [
         {"label": "Total Creators", "value": str(len(creators)), "delta": None, "sub": "managed creators", "icon": "audience", "tone": "violet"},
         {"label": "Total Followers", "value": f"{total_followers:,}" if total_followers < 1000000 else f"{round(total_followers/1000000, 1)}M", "delta": None, "sub": "across all platforms", "icon": "users", "tone": "indigo"},
@@ -141,6 +154,7 @@ def get_agency_overview(user: User = Depends(require_roles(AGENCY)), db: Session
 
 @router.get("/me/creators", response_model=list[CreatorOut])
 def list_my_creators(user: User = Depends(require_roles(AGENCY)), db: Session = Depends(get_db)):
+    """List all creators currently linked to the logged-in agency."""
     agency = _own_agency(user, db)
     stmt = (
         select(Creator)
@@ -155,10 +169,12 @@ def list_my_creators(user: User = Depends(require_roles(AGENCY)), db: Session = 
 def add_creator(
     data: AgencyCreatorAdd, user: User = Depends(require_roles(AGENCY)), db: Session = Depends(get_db)
 ):
+    """Link an existing creator to the logged-in agency."""
     agency = _own_agency(user, db)
     creator = db.get(Creator, data.creator_id)
     if creator is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Creator not found")
+    # Prevent duplicate agency-creator links
     if db.get(AgencyCreator, (agency.agency_id, creator.creator_id)):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="This creator is already linked to your agency")
     db.add(AgencyCreator(agency_id=agency.agency_id, creator_id=creator.creator_id))
@@ -170,6 +186,7 @@ def add_creator(
 def remove_creator(
     creator_id: int, user: User = Depends(require_roles(AGENCY)), db: Session = Depends(get_db)
 ):
+    """Unlink a creator from the logged-in agency."""
     agency = _own_agency(user, db)
     link = db.get(AgencyCreator, (agency.agency_id, creator_id))
     if link is None:
@@ -193,6 +210,7 @@ def get_agency(agency_id: int, user: User = Depends(get_current_user), db: Sessi
 def update_agency(
     agency_id: int, data: AgencyUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    """Update an agency profile by ID (allowed for the owner or an admin)."""
     agency = _get_or_404(agency_id, db)
     if user.user_id != agency.user_id and user.role != ADMIN:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You can only edit your own profile")

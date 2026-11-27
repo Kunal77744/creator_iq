@@ -1,3 +1,5 @@
+"""Admin-only endpoints for viewing platform-wide overview metrics and managing user roles and status."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,9 +18,12 @@ admin_only = require_roles(ADMIN)
 
 @router.get("/overview")
 def get_admin_overview(db: Session = Depends(get_db), _: User = Depends(admin_only)):
+    """Return user growth, platform usage, recent signups, and recent sync activity for admins."""
+    # Load all users ordered by creation date and all connected social accounts
     users = db.scalars(select(User).order_by(User.created_at.asc())).all()
     accounts = db.scalars(select(SocialAccount)).all()
 
+    # Aggregate daily signups into a cumulative user growth series
     growth_map = {}
     for u in users:
         day_str = u.created_at.strftime("%d %b")
@@ -30,15 +35,18 @@ def get_admin_overview(db: Session = Depends(get_db), _: User = Depends(admin_on
         cumulative += count
         user_growth.append({"d": day_str, "Users": cumulative})
 
+    # Count connected social accounts grouped by platform
     plat_counts = {}
     for a in accounts:
         p = (a.platform or "other").capitalize()
         plat_counts[p] = plat_counts.get(p, 0) + 1
     platform_usage = [{"name": p, "value": count} for p, count in plat_counts.items()]
 
+    # Select the 5 most recently registered users
     recent = sorted(users, key=lambda u: u.created_at, reverse=True)[:5]
     recent_users = [to_user_out(u).model_dump() for u in recent]
 
+    # Build a combined activity feed from recent signups and recent social syncs
     activity = []
     for u in recent[:3]:
         activity.append({
@@ -63,6 +71,7 @@ def get_admin_overview(db: Session = Depends(get_db), _: User = Depends(admin_on
 
 @router.get("/users", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _: User = Depends(admin_only)):
+    """List all registered users ordered by user ID."""
     return [to_user_out(u) for u in db.scalars(select(User).order_by(User.user_id))]
 
 
@@ -70,12 +79,15 @@ def list_users(db: Session = Depends(get_db), _: User = Depends(admin_only)):
 def update_user(
     user_id: int, data: AdminUserUpdate, db: Session = Depends(get_db), admin: User = Depends(admin_only)
 ):
+    """Update a user's role or active status; admins cannot modify their own account here."""
+    # Look up target user and guard against self-modification
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     if user.user_id == admin.user_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="You cannot change your own role or status")
 
+    # Apply role change and create the corresponding profile row if needed
     if data.role is not None and data.role != user.role:
         user.role = data.role
         # keep a matching (empty) profile row so the user can open their profile page
@@ -83,6 +95,7 @@ def update_user(
             user.creator = Creator()
         if data.role == AGENCY and user.agency is None:
             user.agency = Agency()
+    # Apply active/inactive toggle if provided
     if data.is_active is not None:
         user.is_active = data.is_active
 

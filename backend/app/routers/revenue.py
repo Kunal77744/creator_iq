@@ -1,3 +1,5 @@
+"""Revenue and monetization endpoints for listing, creating, and deleting income entries."""
+
 from datetime import date, timedelta
 from typing import Literal, Optional
 
@@ -22,6 +24,8 @@ SOURCE_LABELS = {
 
 
 class RevenueCreate(BaseModel):
+    """Validation schema for creating a new revenue entry."""
+
     source: Literal["sponsorship", "ad_revenue", "affiliate", "brand_collab", "subscription"] = "sponsorship"
     title: str = Field(min_length=2, max_length=150)
     platform: str = Field(default="YouTube", max_length=50)
@@ -31,6 +35,7 @@ class RevenueCreate(BaseModel):
 
 
 def _seed_if_empty(user: User, db: Session) -> None:
+    """Seed sample revenue entries once for @creatoriq.com demo accounts if none exist."""
     if not user.email.endswith("@creatoriq.com"):
         return
     exists = db.scalar(select(RevenueEntry.revenue_id).where(RevenueEntry.user_id == user.user_id))
@@ -54,6 +59,8 @@ def _seed_if_empty(user: User, db: Session) -> None:
 
 @router.get("")
 def list_revenue(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """List all revenue entries for the current user with totals and source breakdown."""
+    # Seed demo entries if applicable and query all entries newest-first
     _seed_if_empty(current_user, db)
     rows = db.scalars(
         select(RevenueEntry)
@@ -61,6 +68,7 @@ def list_revenue(current_user: User = Depends(get_current_user), db: Session = D
         .order_by(RevenueEntry.earned_at.desc(), RevenueEntry.revenue_id.desc())
     ).all()
 
+    # Compute total, paid, and pending amounts plus breakdown by revenue source
     total = sum(r.amount for r in rows)
     paid = sum(r.amount for r in rows if r.status == "paid")
     pending = sum(r.amount for r in rows if r.status != "paid")
@@ -96,6 +104,7 @@ def list_revenue(current_user: User = Depends(get_current_user), db: Session = D
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_revenue(data: RevenueCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a new revenue entry for the authenticated user."""
     entry = RevenueEntry(
         user_id=current_user.user_id,
         source=data.source,
@@ -122,6 +131,7 @@ def create_revenue(data: RevenueCreate, current_user: User = Depends(get_current
 
 @router.delete("/{revenue_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_revenue(revenue_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a revenue entry owned by the authenticated user."""
     row = db.scalar(
         select(RevenueEntry).where(
             RevenueEntry.revenue_id == revenue_id, RevenueEntry.user_id == current_user.user_id

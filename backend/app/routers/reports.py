@@ -1,3 +1,5 @@
+"""CSV report export endpoints for analytics, revenue, and connected platform summaries."""
+
 import csv
 import io
 
@@ -20,10 +22,12 @@ def export_report(
     db: Session = Depends(get_db),
 ):
     """Export analytics, revenue, or platform comparison as a CSV (Excel-compatible) file."""
+    # Write CSV rows into an in-memory buffer based on the requested report type
     buf = io.StringIO()
     writer = csv.writer(buf)
 
     if report_type == "revenue":
+        # Export all revenue entries for the current user
         writer.writerow(["ID", "Title", "Source", "Platform", "Amount (INR)", "Status", "Earned Date"])
         rows = db.scalars(
             select(RevenueEntry)
@@ -35,6 +39,7 @@ def export_report(
         filename = "creatoriq_revenue_report.csv"
 
     elif report_type == "platforms":
+        # Export summary stats for each connected social account
         writer.writerow(["Platform", "Username", "Followers", "Total Views", "Videos/Posts", "Live Sync"])
         creator = db.scalar(select(Creator).where(Creator.user_id == current_user.user_id))
         accounts = (
@@ -46,6 +51,7 @@ def export_report(
         filename = "creatoriq_platforms_report.csv"
 
     else:
+        # Export post-level analytics across all connected accounts
         writer.writerow(["Post ID", "Title", "Platform", "Type", "Views", "Likes", "Comments", "Shares", "Engagement %", "Published At"])
         creator = db.scalar(select(Creator).where(Creator.user_id == current_user.user_id))
         if creator:
@@ -68,6 +74,7 @@ def export_report(
                 ])
         filename = "creatoriq_analytics_report.csv"
 
+    # Stream the generated CSV back with a download attachment header
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]),

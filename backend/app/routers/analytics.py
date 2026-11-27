@@ -1,3 +1,5 @@
+"""Analytics and content endpoints for YouTube/Instagram sync, overview KPIs, posts, audience, and marketing."""
+
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -22,6 +24,7 @@ ALL = ("all", "all platforms", "", None)
 
 
 def _get_or_create_creator(user: User, db: Session) -> Creator:
+    """Return the user's Creator profile, creating a default one if it does not exist."""
     creator = db.scalar(select(Creator).where(Creator.user_id == user.user_id))
     if not creator:
         creator = Creator(user_id=user.user_id, creator_name=user.name, bio="Digital content creator & storyteller.")
@@ -37,6 +40,7 @@ def _ensure_demo_data(creator: Creator, db: Session) -> None:
 
 
 def _accounts(creator: Creator, db: Session, platform: Optional[str]) -> list[SocialAccount]:
+    """Fetch active social accounts for a creator, optionally filtered by platform."""
     q = select(SocialAccount).where(
         SocialAccount.creator_id == creator.creator_id, SocialAccount.is_active.is_(True))
     if platform and platform.lower() not in ALL:
@@ -45,6 +49,7 @@ def _accounts(creator: Creator, db: Session, platform: Optional[str]) -> list[So
 
 
 def _posts(db: Session, accounts: list[SocialAccount], days: Optional[int] = None) -> list[Post]:
+    """Fetch posts belonging to the given social accounts, optionally limited to the last `days` days."""
     ids = [a.account_id for a in accounts]
     if not ids:
         return []
@@ -55,6 +60,7 @@ def _posts(db: Session, accounts: list[SocialAccount], days: Optional[int] = Non
 
 
 def _post_dict(p: Post, platform: str) -> dict:
+    """Serialize a Post and its PostAnalytics row into a flat API response dictionary."""
     a = p.analytics
     return {
         "post_id": p.post_id,
@@ -77,6 +83,8 @@ def _post_dict(p: Post, platform: str) -> dict:
 
 
 class SyncRequest(BaseModel):
+    """Request payload for syncing a YouTube channel."""
+
     channel_handle: Optional[str] = None
     api_key: Optional[str] = None
 
@@ -84,10 +92,12 @@ class SyncRequest(BaseModel):
 @router.post("/youtube/sync")
 def sync_youtube(data: SyncRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Sync a YouTube channel. Real API errors are returned to the UI, never hidden."""
+    # Ensure creator profile exists and validate the channel handle
     creator = _get_or_create_creator(current_user, db)
     handle = (data.channel_handle or "").strip()
     if not handle:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Channel handle is required (e.g. @chaiaurcode)")
+    # Call YouTube sync service and handle API or uniqueness errors
     try:
         account = sync_youtube_channel_to_db(db, creator.creator_id, handle, data.api_key)
     except YouTubeAPIError as e:
@@ -95,6 +105,7 @@ def sync_youtube(data: SyncRequest, current_user: User = Depends(get_current_use
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "This channel is already connected to another creator.")
+    # Invalidate cached overview metrics and re-index creator content for RAG
     cache_delete_prefix(f"analytics:overview:{current_user.user_id}:")
     index_creator_content(db, current_user.user_id)
     return {
@@ -108,6 +119,8 @@ def sync_youtube(data: SyncRequest, current_user: User = Depends(get_current_use
 
 
 class InstagramSyncRequest(BaseModel):
+    """Request payload for syncing a public Instagram profile."""
+
     username: Optional[str] = None
 
 
@@ -135,17 +148,20 @@ def get_analytics_overview(
     db: Session = Depends(get_db),
 ):
     """Lifetime channel totals (from the platform) + stats for posts published in the last `days` days."""
+    # Check Redis cache first for this user, platform, and date window
     cache_key = f"analytics:overview:{current_user.user_id}:{(platform or 'all').lower()}:{days}"
     cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
+    # Load connected accounts and posts published within the requested window
     creator = _get_or_create_creator(current_user, db)
     _ensure_demo_data(creator, db)
     accounts = _accounts(creator, db, platform)
     platform_of = {a.account_id: a.platform for a in accounts}
 
     posts = _posts(db, accounts, days)
+    # Sum engagement metrics across posts in the selected date range
     views = likes = comments = shares = 0
     rates = []
     for p in posts:
@@ -182,6 +198,7 @@ def get_analytics_overview(
             for a in accounts
         ],
     }
+    # Cache computed overview for 2 minutes
     cache_set(cache_key, payload, ttl_seconds=120)
     return payload
 
@@ -195,6 +212,7 @@ def get_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Return sorted posts for the creator's connected accounts within the selected timeframe."""
     creator = _get_or_create_creator(current_user, db)
     _ensure_demo_data(creator, db)
     accounts = _accounts(creator, db, platform)
@@ -216,6 +234,7 @@ def get_top_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Return the top N posts ranked by view count."""
     creator = _get_or_create_creator(current_user, db)
     _ensure_demo_data(creator, db)
     accounts = _accounts(creator, db, platform)
@@ -231,8 +250,10 @@ def compare_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Compare views and engagement rate between two or more posts owned by the user."""
     creator = _get_or_create_creator(current_user, db)
     accounts = _accounts(creator, db, None)
+    # Parse and validate comma-separated post IDs
     try:
         ids = [int(i.strip()) for i in post_ids.split(",") if i.strip()]
     except ValueError:
@@ -240,11 +261,13 @@ def compare_posts(
     if len(ids) < 2:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Please select at least 2 posts to compare")
 
+    # Fetch matching posts scoped to the creator's accounts
     acc_ids = [a.account_id for a in accounts]
     posts = db.scalars(select(Post).where(Post.post_id.in_(ids), Post.account_id.in_(acc_ids))).all() if acc_ids else []
     if len(posts) < 2:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "One or more specified posts were not found")
 
+    # Compute head-to-head comparison summary for the first two posts
     plat = {a.account_id: a.platform for a in accounts}
     compared = [_post_dict(p, plat.get(p.account_id, "youtube")) for p in posts]
     p1, p2 = compared[0], compared[1]
@@ -314,12 +337,14 @@ def get_audience_analytics(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Return follower growth history and audience demographics for connected accounts."""
     creator = _get_or_create_creator(current_user, db)
     _ensure_demo_data(creator, db)
     accounts = _accounts(creator, db, platform)
     if not accounts:
         return {"connected": False, "current_followers": 0, "growth_history": [], "demographics": None}
 
+    # Query stored AudienceAnalytics snapshots within the requested window
     ids = [a.account_id for a in accounts]
     since = date.today() - timedelta(days=days)
     records = db.scalars(
@@ -380,12 +405,15 @@ def get_marketing_overview(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Aggregate platform-wide post counts, views, engagement, and content type breakdown for marketing view."""
+    # Compute global post and engagement totals across the database
     total_posts = db.scalar(select(func.count(Post.post_id))) or 0
     total_views = db.scalar(select(func.sum(PostAnalytics.views))) or 0
     total_likes = db.scalar(select(func.sum(PostAnalytics.likes))) or 0
     total_comments = db.scalar(select(func.sum(PostAnalytics.comments))) or 0
     avg_eng = round(((total_likes + total_comments) / total_views * 100), 2) if total_views > 0 else 0.0
 
+    # Group posts by content_type to build the distribution chart
     content_types = db.execute(
         select(Post.content_type, func.count(Post.post_id))
         .group_by(Post.content_type)

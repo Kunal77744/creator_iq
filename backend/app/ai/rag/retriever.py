@@ -1,3 +1,5 @@
+"""RAG retrieval and grounded answer generation over PostgreSQL and pgvector embeddings."""
+
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
@@ -35,6 +37,7 @@ def _sql_top_posts(db: Session, user_id: int, by_engagement: bool, top_k: int) -
 
 def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 4) -> list[dict]:
     """Retrieve top-k chunks scoped strictly to user_id (SQL for superlatives, pgvector for semantic search)."""
+    # Use direct SQL sorting for superlative questions (e.g. highest views / best engagement)
     q_lower = (query or "").lower()
     if any(w in q_lower for w in ("highest", "top", "best", "most", "max")) and any(
         m in q_lower for m in ("view", "engagement", "perform", "video", "post")
@@ -49,10 +52,12 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
         if sql_hits:
             return sql_hits
 
+    # Compute cosine distance against user-scoped embeddings in pgvector
     query_vec = embed_text(query)
     dist_expr = ContentEmbedding.embedding.cosine_distance(query_vec)
 
     rows = []
+    # Prefer audience comment chunks when the query asks about comments or viewer feedback
     if any(w in q_lower for w in ("comment", "audience", "viewer", "feedback", "asking", "asked", "reply", "replies")):
         rows = db.execute(
             select(ContentEmbedding, dist_expr.label("distance"))
@@ -64,6 +69,7 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
             .limit(top_k)
         ).all()
 
+    # Fall back to searching all chunks if no comment-specific rows matched
     if not rows:
         rows = db.execute(
             select(ContentEmbedding, dist_expr.label("distance"))
@@ -105,6 +111,7 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
         f"({h['views']:,} views, {h['engagement_rate']}% eng): {h['chunk_text']}"
         for h in hits
     )
+    # Wrap retrieved chunks in untrusted data tags to guard against prompt injection
     llm_answer = generate_ai_text(
         f"User question: {query}\n\n<untrusted_creator_data>\n{context}\n</untrusted_creator_data>",
         system_prompt=(
@@ -116,6 +123,7 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
     if llm_answer:
         return {"answer": llm_answer, "citations": hits, "source": "llm"}
 
+    # Build a deterministic bulleted answer when the LLM is not configured or fails
     lines = ["Based on your indexed creator content and audience comments in PostgreSQL:"]
     for i, h in enumerate(hits, 1):
         if h.get("chunk_type") == "comments":

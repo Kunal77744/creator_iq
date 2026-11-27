@@ -1,5 +1,7 @@
+# GitHub Actions CI pipeline for CreatorIQ: runs backend pytest suite, dependency security audit, and frontend tests/build.
 name: CreatorIQ CI
 
+# Trigger CI on pushes to main/feature branch and pull requests to main
 on:
   push:
     branches: [main, kunal-Deshmukh]
@@ -7,6 +9,7 @@ on:
     branches: [main]
 
 jobs:
+  # Run FastAPI pytest suite against ephemeral PostgreSQL (pgvector) and Redis services
   backend-tests:
     runs-on: ubuntu-latest
     services:
@@ -50,6 +53,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: pytest -v
 
+  # Audit Python dependencies for known security vulnerabilities
   security-scan:
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +66,7 @@ jobs:
           pip install pip-audit
           pip-audit -r requirements.txt
 
+  # Install Node dependencies, run Vitest unit tests, and verify production Vite build
   frontend-tests:
     runs-on: ubuntu-latest
     steps:

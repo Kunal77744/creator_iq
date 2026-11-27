@@ -1,3 +1,5 @@
+"""Model Context Protocol (MCP) server exposing CreatorIQ agent tools over stdio/MCP."""
+
 from mcp.server.mcpserver import MCPServer
 
 from ...database import SessionLocal

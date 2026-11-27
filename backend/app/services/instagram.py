@@ -20,6 +20,8 @@ PROFILE_URL = "https://instagram-scraper-stable-api.p.rapidapi.com/ig_get_fb_pro
 
 
 class InstagramAPIError(Exception):
+    """Raised when the RapidAPI Instagram request fails or returns an invalid profile."""
+
     def __init__(self, message: str, status: int = 502):
         super().__init__(message)
         self.message = message
@@ -28,6 +30,7 @@ class InstagramAPIError(Exception):
 
 def fetch_instagram_profile(username_or_url: str) -> dict:
     """Fetches real-time profile data from Instagram via RapidAPI."""
+    # Ensure RapidAPI key is configured before making an outbound call
     if not RAPIDAPI_KEY:
         raise InstagramAPIError("RAPIDAPI_KEY is not configured.", 503)
     clean_user = username_or_url.strip().lstrip("@")
@@ -42,6 +45,7 @@ def fetch_instagram_profile(username_or_url: str) -> dict:
         f"--{boundary}--\r\n"
     ).encode("utf-8")
 
+    # Build RapidAPI HTTP POST request
     req = urllib.request.Request(
         PROFILE_URL,
         data=body,
@@ -52,6 +56,7 @@ def fetch_instagram_profile(username_or_url: str) -> dict:
         },
     )
 
+    # Execute request and translate HTTP/network failures into InstagramAPIError
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))

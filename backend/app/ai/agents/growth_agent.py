@@ -1,3 +1,5 @@
+"""Creator Growth Agent combining Gemini native function calling with a rule-based fallback."""
+
 from sqlalchemy.orm import Session
 
 from ..llm import call_gemini_with_tools, llm_is_configured
@@ -8,6 +10,7 @@ from .tools import (
     search_creator_content_rag,
 )
 
+# Gemini function declarations exposed to the agent during tool-calling turns
 TOOL_DECLARATIONS = [
     {
         "name": "get_channel_kpis",
@@ -45,6 +48,7 @@ _SYSTEM_PROMPT = (
 
 
 def _execute_tool(db: Session, user_id: int, name: str, args: dict, message: str):
+    """Dispatch a Gemini function call by name to the matching local tool."""
     if name == "get_channel_kpis":
         return get_channel_kpis(db, user_id)
     if name == "get_revenue_summary":
@@ -57,6 +61,7 @@ def _execute_tool(db: Session, user_id: int, name: str, args: dict, message: str
 
 
 def _run_llm_function_calling(db: Session, user_id: int, message: str) -> dict | None:
+    """Run up to 4 Gemini tool-calling turns and return the final grounded response."""
     if not llm_is_configured():
         return None
 
@@ -69,6 +74,7 @@ def _run_llm_function_calling(db: Session, user_id: int, message: str) -> dict |
         if not parts:
             return None
 
+        # Execute any requested tool calls and feed their results back to the model
         fn_calls = [p["functionCall"] for p in parts if "functionCall" in p]
         if fn_calls:
             contents.append({"role": "model", "parts": parts})
@@ -87,6 +93,7 @@ def _run_llm_function_calling(db: Session, user_id: int, message: str) -> dict |
             contents.append({"role": "user", "parts": response_parts})
             continue
 
+        # No more tool calls: collect and return the model's final text reply
         text = "".join(p.get("text", "") for p in parts).strip()
         if text:
             return {
@@ -111,6 +118,7 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
     sections: list[str] = []
     citations: list[dict] = []
 
+    # Determine which tools to run based on keywords in the user's message
     want_kpis = any(w in q for w in ("kpi", "follower", "subscriber", "view", "channel", "overview", "growth", "summary"))
     want_rev = any(w in q for w in ("revenue", "money", "earn", "income", "payout", "summary"))
     want_sponsor = any(w in q for w in ("sponsor", "rate", "price", "brand", "deal", "charge"))
@@ -121,6 +129,7 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
         )
     )
 
+    # Default to KPIs and RAG search when no specific category keyword matched
     if not (want_kpis or want_rev or want_sponsor or want_rag):
         want_kpis = want_rag = True
 

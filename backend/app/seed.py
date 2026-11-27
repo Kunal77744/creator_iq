@@ -6,6 +6,7 @@ from .models import Agency, AgencyCreator, Creator, User
 from .roles import ADMIN, AGENCY, CREATOR, MARKETING_TEAM
 from .security import hash_password
 
+# Shared credentials for local development demo accounts
 DEMO_PASSWORD = "Demo@1234"
 DEMO_USERS = [
     ("Kunal Deshmukh", "creator@creatoriq.com", CREATOR),
@@ -16,6 +17,7 @@ DEMO_USERS = [
 
 
 def seed_demo_users(db: Session) -> None:
+    """Create missing demo users, their role profiles, and the agency-creator link."""
     for name, email, role in DEMO_USERS:
         if db.scalar(select(User).where(User.email == email)):
             continue

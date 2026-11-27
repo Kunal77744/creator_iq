@@ -1,9 +1,11 @@
+// Registration page: allows new users to select a role, validate inputs, and create an account.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout.jsx";
 import { useAuth } from "../AuthContext.jsx";
 import { errorMessage } from "../api";
 
+// Selectable account role options displayed as radio cards
 const ROLES = [
   { value: "creator", title: "Creator", text: "I make content" },
   { value: "agency", title: "Agency", text: "I manage creators" },
@@ -11,6 +13,7 @@ const ROLES = [
   { value: "admin", title: "Administrator", text: "I manage the platform" },
 ];
 
+// Register form component handling client-side validation and account creation
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +34,7 @@ export default function Register() {
     return "";
   }
 
+  // Validate inputs, register the new user, and redirect to login
   async function onSubmit(e) {
     e.preventDefault();
     const problem = validate();
@@ -58,6 +62,7 @@ export default function Register() {
       <h1>Create your account</h1>
       <p className="sub">Start tracking your content in a few minutes.</p>
 
+      {/* Registration form with role selector and credential inputs */}
       <form onSubmit={onSubmit} noValidate>
         <fieldset className="roles">
           <legend>I am a</legend>
@@ -94,6 +99,7 @@ export default function Register() {
         </button>
       </form>
 
+      {/* Link to login page for existing users */}
       <p className="switch">
         Already have an account? <Link to="/login">Log in</Link>
       </p>

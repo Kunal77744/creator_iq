@@ -1,6 +1,9 @@
+// Split-screen layout used by Login and Register pages.
+// Renders the form card on the left and a decorative analytics preview on the right.
 export default function AuthLayout({ children }) {
   return (
     <div className="auth">
+      {/* Left column: brand logo and authentication form content */}
       <main className="auth-form-side">
         <div className="brand">
           <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
@@ -13,6 +16,7 @@ export default function AuthLayout({ children }) {
         <div className="auth-card">{children}</div>
       </main>
 
+      {/* Right column: decorative product pitch and sample follower growth chart */}
       <aside className="auth-visual" aria-hidden="true">
         <h2>See what your content is really doing.</h2>
         <p>Followers, views and engagement from every platform, in one dashboard.</p>

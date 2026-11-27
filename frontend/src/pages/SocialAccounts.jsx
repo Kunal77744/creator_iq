@@ -1,7 +1,9 @@
+// Social Media Integrations page: lets creators sync YouTube/Instagram channels and view supported platforms.
 import { useEffect, useState } from "react";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// SocialAccounts page component for connecting and syncing creator social profiles
 export default function SocialAccounts() {
   const [ytHandle, setYtHandle] = useState("@chaiaurcode");
   const [igUser, setIgUser] = useState("");
@@ -10,6 +12,7 @@ export default function SocialAccounts() {
   const [err, setErr] = useState("");
   const [summary, setSummary] = useState(null);
 
+  // Fetch current connected platforms summary from analytics overview
   const loadSummary = () => {
     api.get("/api/v1/analytics/overview")
       .then((r) => setSummary(r.data))
@@ -18,6 +21,7 @@ export default function SocialAccounts() {
 
   useEffect(() => { loadSummary(); }, []);
 
+  // Trigger YouTube channel sync by handle or channel ID
   async function handleSyncYT(e) {
     e.preventDefault();
     setErr(""); setMsg(""); setBusy("yt");
@@ -32,6 +36,7 @@ export default function SocialAccounts() {
     }
   }
 
+  // Trigger Instagram profile sync by public username
   async function handleSyncIG(e) {
     e.preventDefault();
     setErr(""); setMsg(""); setBusy("ig");
@@ -46,6 +51,7 @@ export default function SocialAccounts() {
     }
   }
 
+  // Build status cards for supported social platforms
   const platforms = [
     { name: "YouTube", status: summary?.platforms?.some((p) => p.platform?.toLowerCase() === "youtube") ? "Connected" : "Ready to Sync", color: "#ef4444" },
     { name: "Instagram", status: summary?.platforms?.some((p) => p.platform?.toLowerCase() === "instagram") ? "Connected" : "Ready to Sync", color: "#d946a8" },
@@ -57,6 +63,7 @@ export default function SocialAccounts() {
 
   return (
     <AppLayout>
+      {/* Page header */}
       <div className="hello">
         <div>
           <h1>Social Media Integrations</h1>
@@ -67,6 +74,7 @@ export default function SocialAccounts() {
       {err && <div className="error" role="alert">{err}</div>}
       {msg && <div className="card" style={{ borderLeft: "4px solid #22c55e", marginBottom: 16 }}>{msg}</div>}
 
+      {/* Sync forms for YouTube and Instagram */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 20 }}>
         <article className="card">
           <h3>YouTube Data API v3 Sync</h3>
@@ -101,6 +109,7 @@ export default function SocialAccounts() {
         </article>
       </div>
 
+      {/* Supported platforms status overview */}
       <article className="card">
         <h3 style={{ marginBottom: 12 }}>Supported Platforms</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>

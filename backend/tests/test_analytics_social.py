@@ -2,6 +2,7 @@
 
 
 def test_analytics_requires_auth(client):
+    """Verify analytics endpoints reject unauthenticated requests with 401."""
     for path in (
         "/api/analytics/overview",
         "/api/analytics/posts",
@@ -13,11 +14,13 @@ def test_analytics_requires_auth(client):
 
 
 def test_youtube_sync_validation_error(client, h):
+    """Verify YouTube sync rejects a blank channel handle with 400."""
     r = client.post("/api/analytics/youtube/sync", json={"channel_handle": "   "}, headers=h["creator"])
     assert r.status_code == 400
 
 
 def test_analytics_overview_and_posts(client, h):
+    """Verify creator overview and posts endpoints return valid structures."""
     overview = client.get("/api/analytics/overview", headers=h["creator"])
     assert overview.status_code == 200
     body = overview.json()
@@ -30,6 +33,7 @@ def test_analytics_overview_and_posts(client, h):
 
 
 def test_content_performance_and_audience(client, h):
+    """Verify content performance and audience endpoints return expected metric keys."""
     perf = client.get("/api/analytics/content-performance?days=30", headers=h["creator"])
     assert perf.status_code == 200
     for key in ("Views", "Likes", "Comments", "Shares"):
@@ -41,17 +45,20 @@ def test_content_performance_and_audience(client, h):
 
 
 def test_compare_posts_same_or_missing_fails(client, h):
+    """Verify comparing nonexistent post IDs returns 400 or 404."""
     r = client.get("/api/analytics/compare?post_id_1=99999&post_id_2=99998", headers=h["creator"])
     assert r.status_code in (400, 404)
 
 
 def test_marketing_overview_accessible(client, h):
+    """Verify marketing team users can access the marketing overview endpoint."""
     r = client.get("/api/analytics/marketing/overview", headers=h["marketing"])
     assert r.status_code == 200
     assert "kpis" in r.json()
 
 
 def test_new_creator_starts_with_no_fake_channel(client):
+    """Verify a newly registered creator has no pre-connected social channel."""
     from .conftest import auth, register
 
     register(client, email="fresh_user@example.com", role="creator", name="Fresh Creator")
@@ -64,6 +71,7 @@ def test_new_creator_starts_with_no_fake_channel(client):
 
 
 def test_two_creators_can_sync_same_public_channel(client, h, monkeypatch):
+    """Verify two different creators can independently sync the same public YouTube handle."""
     from .conftest import auth, register
 
     # Force demo fallback in test so no external YouTube quota/network is needed

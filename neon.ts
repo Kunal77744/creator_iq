@@ -1,5 +1,7 @@
+// Neon project configuration defining service toggles and branch lifecycle policies.
 import { defineConfig } from "@neon/config/v1";
 
+// Export Neon configuration with auth disabled and a 7-day TTL for new non-default branches
 export default defineConfig({
   // Declare your Neon services here
   auth: false,

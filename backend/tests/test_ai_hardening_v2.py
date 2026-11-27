@@ -8,6 +8,7 @@ from app.models import Creator, Post, PostAnalytics, SocialAccount, User
 
 
 def test_ai_endpoints_reject_oversized_inputs(client, h):
+    """Verify RAG query and agent chat reject inputs exceeding maximum length."""
     too_long = "x" * 1005
     r1 = client.post("/api/v1/ai/rag-query", json={"query": too_long}, headers=h["creator"])
     assert r1.status_code == 422
@@ -17,6 +18,7 @@ def test_ai_endpoints_reject_oversized_inputs(client, h):
 
 
 def test_ai_responses_include_transparent_source_field(client, h):
+    """Verify AI responses expose whether output came from an LLM or fallback logic."""
     ins = client.get("/api/v1/ai/insights", headers=h["creator"])
     assert ins.status_code == 200
     assert ins.json()["source"] in ("llm", "fallback")
@@ -27,6 +29,7 @@ def test_ai_responses_include_transparent_source_field(client, h):
 
 
 def test_rag_superlative_finds_true_top_video_beyond_20_posts(client, h):
+    """Verify SQL superlative ranking finds the highest-viewed video across >20 posts."""
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == "creator@creatoriq.com"))
         creator = db.scalar(select(Creator).where(Creator.user_id == user.user_id))

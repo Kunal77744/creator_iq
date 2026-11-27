@@ -1,3 +1,4 @@
+"""Application configuration loaded from environment variables and .env files."""
 import os
 from pathlib import Path
 
@@ -11,6 +12,7 @@ load_dotenv()
 
 
 def _normalize_pg_url(url: str) -> str:
+    """Convert postgres:// or postgresql:// URLs to use the psycopg2 driver."""
     if url.startswith("postgres://"):
         return "postgresql+psycopg2://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
@@ -18,11 +20,14 @@ def _normalize_pg_url(url: str) -> str:
     return url
 
 
+# Database and Redis connection settings
 DATABASE_URL = _normalize_pg_url(
     os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/creatoriq")
 )
 DATABASE_URL_UNPOOLED = _normalize_pg_url(os.getenv("DATABASE_URL_UNPOOLED", DATABASE_URL))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# Security secret and production safety check
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-change-me")
 _IS_PROD = (
     os.getenv("ENV", "").lower() == "production"
@@ -35,15 +40,19 @@ if _IS_PROD and (
 ):
     raise RuntimeError("SECRET_KEY must be set to a strong secret (16+ chars) in production.")
 
+# JWT, CORS, seeding, and hashing settings
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 SEED_DEMO_USERS = os.getenv("SEED_DEMO_USERS", "false").lower() == "true"
 BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", "12"))  # tests lower this for speed
+
+# External API keys and background sync interval
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
 SYNC_INTERVAL_MINUTES = int(os.getenv("SYNC_INTERVAL_MINUTES", "360"))  # auto re-sync of connected YouTube channels (0 = off)
 
+# LinkedIn OAuth credentials
 LINKEDIN_CLIENT_ID = os.getenv('LINKEDIN_CLIENT_ID', '')
 LINKEDIN_CLIENT_SECRET = os.getenv('LINKEDIN_CLIENT_SECRET', '')
 LINKEDIN_REDIRECT_URI = os.getenv('LINKEDIN_REDIRECT_URI', 'http://localhost:8000/api/auth/linkedin/callback')

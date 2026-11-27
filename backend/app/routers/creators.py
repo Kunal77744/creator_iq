@@ -1,3 +1,5 @@
+"""Creator profile endpoints for viewing and updating creator metadata."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,6 +14,7 @@ router = APIRouter(prefix="/creators", tags=["Creator profile"])
 
 
 def _own_creator(user: User, db: Session) -> Creator:
+    """Return the logged-in user's Creator row, creating an empty one if missing."""
     creator = db.scalar(select(Creator).where(Creator.user_id == user.user_id))
     if creator is None:  # e.g. an admin switched this user to Creator before a profile existed
         creator = Creator(user_id=user.user_id)
@@ -22,6 +25,7 @@ def _own_creator(user: User, db: Session) -> Creator:
 
 
 def _get_or_404(creator_id: int, db: Session) -> Creator:
+    """Fetch a Creator by ID or raise 404 if not found."""
     creator = db.get(Creator, creator_id)
     if creator is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Creator profile not found")
@@ -29,6 +33,7 @@ def _get_or_404(creator_id: int, db: Session) -> Creator:
 
 
 def _apply(creator: Creator, data: CreatorUpdate, db: Session) -> Creator:
+    """Apply partial updates from CreatorUpdate to the Creator record and commit."""
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(creator, field, value)
     db.commit()
@@ -38,6 +43,7 @@ def _apply(creator: Creator, data: CreatorUpdate, db: Session) -> Creator:
 
 @router.get("/me", response_model=CreatorOut)
 def get_my_profile(user: User = Depends(require_roles(CREATOR)), db: Session = Depends(get_db)):
+    """Return the current creator user's profile."""
     return _own_creator(user, db)
 
 
@@ -55,6 +61,7 @@ def get_creator(creator_id: int, user: User = Depends(get_current_user), db: Ses
     creator = _get_or_404(creator_id, db)
     if user.user_id == creator.user_id or user.role == ADMIN:
         return creator
+    # Allow agencies to view profiles of creators linked to them
     if user.role == AGENCY:
         agency = db.scalar(select(Agency).where(Agency.user_id == user.user_id))
         linked = agency and db.get(AgencyCreator, (agency.agency_id, creator.creator_id))

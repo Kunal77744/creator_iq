@@ -1,3 +1,4 @@
+"""FastAPI authentication and role-based authorization dependencies."""
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -7,6 +8,7 @@ from .database import get_db
 from .models import User
 from .security import decode_access_token
 
+# Extracts the Bearer token from the Authorization header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
@@ -17,11 +19,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # Decode the JWT and extract the user ID from the subject claim
     try:
         user_id = int(decode_access_token(token)["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
         raise credentials_error
 
+    # Verify the user still exists and is active in the database
     user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise credentials_error

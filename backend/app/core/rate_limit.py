@@ -1,3 +1,4 @@
+"""Rate-limiting utilities backed by Redis with a thread-safe in-memory fallback."""
 from collections import defaultdict, deque
 import os
 import threading
@@ -7,6 +8,7 @@ from fastapi import HTTPException, Request, status
 
 from .redis import get_redis_client
 
+# Thread lock and sliding-window buckets used when Redis is unavailable
 _lock = threading.Lock()
 _memory_buckets: dict[str, deque[float]] = defaultdict(deque)
 
@@ -22,6 +24,7 @@ def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
     if os.getenv("DISABLE_RATE_LIMIT") == "1":
         return
 
+    # Try Redis counter first for distributed rate limiting
     client = get_redis_client()
     if client is not None:
         try:
@@ -40,6 +43,7 @@ def check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
         except Exception:
             pass
 
+    # Fallback to an in-memory sliding window when Redis is unavailable
     now = time.monotonic()
     with _lock:
         bucket = _memory_buckets[key]

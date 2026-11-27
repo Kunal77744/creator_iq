@@ -4,12 +4,14 @@ from .test_ai_rag import _seed_creator_posts
 
 
 def test_embedded_ai_endpoints_require_auth(client):
+    """Verify embedded AI endpoints reject unauthenticated requests with 401."""
     assert client.get("/api/v1/ai/insights").status_code == 401
     assert client.post("/api/v1/ai/analyze-post/1").status_code == 401
     assert client.get("/api/v1/ai/sponsorship-estimate").status_code == 401
 
 
 def test_ai_insights_empty_state_and_populated(client, h):
+    """Verify AI insights handles both empty channels and populated post data."""
     # Empty state when creator has no posts
     empty = client.get("/api/v1/ai/insights", headers=h["creator"])
     assert empty.status_code == 200
@@ -27,6 +29,7 @@ def test_ai_insights_empty_state_and_populated(client, h):
 
 
 def test_analyze_post_rag_and_isolation(client, h):
+    """Verify post deep-dive analysis works for the owner and blocks other users."""
     _seed_creator_posts()
     posts = client.get("/api/v1/analytics/posts", headers=h["creator"]).json()
     post_id = posts[0]["post_id"]
@@ -46,6 +49,7 @@ def test_analyze_post_rag_and_isolation(client, h):
 
 
 def test_sponsorship_estimate_returns_inr_range(client, h):
+    """Verify sponsorship estimation returns a valid INR min/recommended/max range."""
     _seed_creator_posts()
     res = client.get("/api/v1/ai/sponsorship-estimate", headers=h["creator"])
     assert res.status_code == 200
@@ -55,6 +59,7 @@ def test_sponsorship_estimate_returns_inr_range(client, h):
 
 
 def test_llm_client_graceful_fallback_without_key(monkeypatch):
+    """Verify llm_is_configured returns False when no API key is set."""
     monkeypatch.setenv("LLM_API_KEY", "")
     from app.ai.llm import llm_is_configured
 

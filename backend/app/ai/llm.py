@@ -1,3 +1,5 @@
+"""Google Gemini REST API client helpers for text generation, embeddings, and tool calling."""
+
 import json
 import logging
 import os
@@ -9,14 +11,17 @@ log = logging.getLogger("creatoriq.llm")
 
 
 def _api_key() -> str:
+    """Read the configured Gemini/LLM API key from environment variables."""
     return (os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY") or "").strip()
 
 
 def llm_is_configured() -> bool:
+    """Return True if an LLM API key is available."""
     return bool(_api_key())
 
 
 def _chat_models() -> list[str]:
+    """Return an ordered, deduplicated list of Gemini chat models to try."""
     primary = (os.getenv("LLM_MODEL") or "gemini-3.8-flash").strip()
     candidates = [primary, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
     seen: list[str] = []
@@ -27,6 +32,7 @@ def _chat_models() -> list[str]:
 
 
 def _post_generate_content(payload: dict, key: str, timeout: int) -> Optional[dict]:
+    """Send a generateContent POST request, falling back across candidate models on transient HTTP errors."""
     for model in _chat_models():
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
         req = urllib.request.Request(
@@ -39,6 +45,7 @@ def _post_generate_content(payload: dict, key: str, timeout: int) -> Optional[di
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
+            # Retry with the next fallback model on rate limits, missing model, or server errors
             if exc.code in (404, 429, 500, 502, 503, 504):
                 log.warning("Gemini model %s returned HTTP %s, trying fallback model", model, exc.code)
                 continue

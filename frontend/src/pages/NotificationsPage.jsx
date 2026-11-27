@@ -1,12 +1,15 @@
+// Notifications & Alerts page: displays user alerts and allows marking individual or all items as read.
 import { useEffect, useState } from "react";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// NotificationsPage component fetching and managing the user's alert feed
 export default function NotificationsPage() {
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
   const [err, setErr] = useState("");
 
+  // Fetch notifications list and unread count from the backend
   const load = () => {
     api.get("/api/v1/notifications")
       .then((r) => {
@@ -18,11 +21,13 @@ export default function NotificationsPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Mark a single notification as read and refresh the list
   async function markOne(id) {
     await api.patch(`/api/v1/notifications/${id}/read`);
     load();
   }
 
+  // Mark all notifications as read and refresh the list
   async function markAll() {
     await api.post("/api/v1/notifications/read-all");
     load();
@@ -30,6 +35,7 @@ export default function NotificationsPage() {
 
   return (
     <AppLayout>
+      {/* Page header with unread counter and bulk mark-read action */}
       <div className="hello">
         <div>
           <h1>Notifications & Alerts ({unread} unread)</h1>
@@ -42,6 +48,7 @@ export default function NotificationsPage() {
 
       {err && <div className="error" role="alert">{err}</div>}
 
+      {/* Notification cards list */}
       <div style={{ display: "grid", gap: 12 }}>
         {items.map((n) => (
           <article key={n.notification_id} className="card" style={{ borderLeft: n.is_read ? "4px solid #cbd5e1" : "4px solid #6d4ae8", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

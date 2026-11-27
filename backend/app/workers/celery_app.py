@@ -1,7 +1,9 @@
+"""Celery application configuration and periodic Beat schedule."""
 from celery import Celery
 
 from ..config import REDIS_URL
 
+# Initialize Celery with Redis as both broker and result backend
 celery_app = Celery(
     "creatoriq",
     broker=REDIS_URL,
@@ -9,6 +11,7 @@ celery_app = Celery(
     include=["app.workers.tasks"],
 )
 
+# Configure JSON serialization, UTC timezone, and the 6-hour YouTube sync schedule
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],

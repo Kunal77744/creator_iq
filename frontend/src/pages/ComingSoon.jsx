@@ -1,8 +1,11 @@
+// Placeholder page for upcoming CreatorIQ modules not yet implemented.
 import { Link, useParams } from "react-router-dom";
 import AppLayout from "../components/AppLayout.jsx";
 
+// Renders a formatted section title from the URL slug with a link back to the dashboard
 export default function ComingSoon() {
   const { page } = useParams();
+  // Convert kebab-case route param (e.g. "brand-deals") into Title Case ("Brand Deals")
   const title = page.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
   return (
     <AppLayout>

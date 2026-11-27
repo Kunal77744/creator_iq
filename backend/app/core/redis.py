@@ -1,3 +1,4 @@
+"""Redis client initialization and JSON cache helper functions."""
 import json
 import logging
 from typing import Any, Optional
@@ -8,6 +9,7 @@ from ..config import REDIS_URL
 
 log = logging.getLogger("creatoriq.redis")
 
+# Lazily initialized shared Redis connection
 _client: Optional[redis.Redis] = None
 
 
@@ -24,6 +26,7 @@ def get_redis_client() -> Optional[redis.Redis]:
 
 
 def redis_ping() -> bool:
+    """Return True if Redis responds to PING, False otherwise."""
     client = get_redis_client()
     if client is None:
         return False
@@ -34,6 +37,7 @@ def redis_ping() -> bool:
 
 
 def cache_get(key: str) -> Any:
+    """Fetch and JSON-decode a cached value by key, returning None on miss or error."""
     client = get_redis_client()
     if client is None:
         return None
@@ -46,6 +50,7 @@ def cache_get(key: str) -> Any:
 
 
 def cache_set(key: str, value: Any, ttl_seconds: int = 120) -> None:
+    """JSON-serialize and store a value in Redis with a TTL in seconds."""
     client = get_redis_client()
     if client is None:
         return
@@ -56,6 +61,7 @@ def cache_set(key: str, value: Any, ttl_seconds: int = 120) -> None:
 
 
 def cache_delete(key: str) -> None:
+    """Delete a single cache key from Redis if present."""
     client = get_redis_client()
     if client is None:
         return
@@ -66,6 +72,7 @@ def cache_delete(key: str) -> None:
 
 
 def cache_delete_prefix(prefix: str) -> None:
+    """Scan and delete all Redis keys matching the given prefix."""
     client = get_redis_client()
     if client is None:
         return

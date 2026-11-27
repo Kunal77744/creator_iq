@@ -2,6 +2,7 @@
 
 
 def test_v1_health_reports_db_and_redis(client):
+    """Verify /api/v1/health reports healthy status for both database and Redis."""
     r = client.get("/api/v1/health")
     assert r.status_code == 200
     body = r.json()
@@ -11,6 +12,7 @@ def test_v1_health_reports_db_and_redis(client):
 
 
 def test_v1_routes_require_auth_and_work(client, h):
+    """Verify /api/v1 analytics and revenue routes enforce auth and return data."""
     assert client.get("/api/v1/analytics/overview").status_code == 401
     r = client.get("/api/v1/analytics/overview", headers=h["creator"])
     assert r.status_code == 200
@@ -21,6 +23,7 @@ def test_v1_routes_require_auth_and_work(client, h):
 
 
 def test_redis_cache_roundtrip():
+    """Verify Redis cache_set, cache_get, and cache_delete roundtrip behavior."""
     from app.core.redis import cache_delete, cache_get, cache_set
 
     key = "test:creatoriq:phase2"
@@ -36,6 +39,7 @@ def test_redis_cache_roundtrip():
 
 
 def test_analytics_overview_populates_redis_cache(client, h):
+    """Verify analytics overview caches its response in Redis for subsequent requests."""
     from app.core.redis import cache_delete, cache_get
 
     # Clear any prior cache for creator
@@ -54,6 +58,7 @@ def test_analytics_overview_populates_redis_cache(client, h):
 
 
 def test_celery_app_and_sync_task_registered():
+    """Verify the YouTube sync Celery task is registered and runs cleanly in eager mode."""
     from app.workers.celery_app import celery_app
     from app.workers.tasks import sync_all_youtube_channels_task
 

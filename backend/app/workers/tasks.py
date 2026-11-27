@@ -1,3 +1,4 @@
+"""Background Celery tasks for CreatorIQ."""
 import logging
 
 from sqlalchemy import select
@@ -16,6 +17,7 @@ def sync_all_youtube_channels_task() -> dict:
     """Re-sync all live YouTube accounts in PostgreSQL and invalidate cached analytics."""
     synced = 0
     errors: list[str] = []
+    # Query all live YouTube accounts and sync each one independently
     with SessionLocal() as db:
         accounts = db.scalars(
             select(SocialAccount).where(
@@ -31,6 +33,7 @@ def sync_all_youtube_channels_task() -> dict:
                 db.rollback()
                 log.warning("Celery YouTube sync failed for %s: %s", acc.username, exc)
                 errors.append(str(exc))
+    # Clear cached analytics overview responses if at least one channel updated
     if synced:
         cache_delete_prefix("analytics:overview:")
     return {"synced": synced, "errors": errors}

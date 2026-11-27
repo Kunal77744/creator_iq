@@ -1,3 +1,4 @@
+// Integration tests for Embedded AI UI components (Growth Brief, Copilot Drawer, Deal Estimator, Post Analysis, and onboarding).
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -19,6 +20,7 @@ import RevenuePage from "../pages/RevenuePage.jsx";
 import ContentAnalytics from "../pages/ContentAnalytics.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 
+// Mock authenticated creator user for layout and page components.
 vi.mock("../AuthContext.jsx", () => ({
   useAuth: () => ({
     user: { user_id: 1, name: "Kunal", role: "creator", role_label: "Creator" },
@@ -31,6 +33,7 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     vi.clearAllMocks();
   });
 
+  // Verify AIGrowthBrief fetches and displays summary + insight bullets.
   it("renders AI Growth Brief on Dashboard from /api/v1/ai/insights", async () => {
     api.get.mockResolvedValueOnce({
       data: {
@@ -45,6 +48,7 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     expect(screen.getByText(/Recommended sponsorship rate/i)).toBeInTheDocument();
   });
 
+  // Verify AIDrawer submits a prompt to /api/v1/ai/agent-chat and shows reply + tool pills.
   it("opens Global AI Copilot Drawer and sends agent-chat prompt", async () => {
     api.post.mockResolvedValueOnce({
       data: {
@@ -63,6 +67,7 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     expect(screen.getByText(/calculate_sponsorship_rate/i)).toBeInTheDocument();
   });
 
+  // Verify RevenuePage populates the amount input when clicking AI Deal Estimator.
   it("pre-fills Revenue form using AI Deal Estimator", async () => {
     api.get.mockImplementation((url) => {
       if (url.includes("/api/v1/revenue")) {
@@ -89,6 +94,7 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     });
   });
 
+  // Verify ContentAnalytics triggers AI post analysis and displays the returned insight.
   it("analyzes a post with RAG from ContentAnalytics page", async () => {
     api.get.mockImplementation((url) => {
       if (url.includes("/api/v1/analytics/posts")) {
@@ -119,6 +125,7 @@ describe("Embedded AI & UI Integration (TDD RED)", () => {
     expect(await screen.findByText(/Strong hook and tutorial retention/i)).toBeInTheDocument();
   });
 
+  // Verify Dashboard renders the empty-state onboarding prompt when no platforms are connected.
   it("shows clean platform onboarding when new user has no connected accounts", async () => {
     api.get.mockImplementation((url) => {
       if (url.includes("/api/v1/analytics/overview")) {

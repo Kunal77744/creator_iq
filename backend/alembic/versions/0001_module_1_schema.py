@@ -20,6 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # Core users table with role check constraint and unique email index
     op.create_table('users',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
@@ -35,6 +36,7 @@ def upgrade() -> None:
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_users_email'), ['email'], unique=True)
 
+    # Agency profiles linked 1-to-1 with users
     op.create_table('agencies',
     sa.Column('agency_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -49,6 +51,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('agency_id'),
     sa.UniqueConstraint('user_id')
     )
+
+    # Creator profiles linked 1-to-1 with users
     op.create_table('creators',
     sa.Column('creator_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -63,6 +67,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('creator_id'),
     sa.UniqueConstraint('user_id')
     )
+
+    # Many-to-many join table between agencies and creators
     op.create_table('agency_creators',
     sa.Column('agency_id', sa.Integer(), nullable=False),
     sa.Column('creator_id', sa.Integer(), nullable=False),

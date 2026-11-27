@@ -1,6 +1,8 @@
+// Slide-over chat drawer for conversing with the CreatorIQ AI Copilot agent.
 import { useState } from "react";
 import api, { errorMessage } from "../api";
 
+// Modal drawer component that sends user prompts to /api/v1/ai/agent-chat and renders replies.
 export default function AIDrawer({ open, onClose }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -9,6 +11,7 @@ export default function AIDrawer({ open, onClose }) {
 
   if (!open) return null;
 
+  // Submit the user's question to the AI agent endpoint and append the assistant response.
   async function handleSubmit(e) {
     e.preventDefault();
     const q = input.trim();
@@ -38,6 +41,7 @@ export default function AIDrawer({ open, onClose }) {
   return (
     <aside className="ai-drawer-backdrop" role="dialog" aria-label="AI Copilot Drawer">
       <div className="ai-drawer">
+        {/* Drawer header with agent badge and close button */}
         <header className="ai-drawer-head">
           <div>
             <span className="ai-badge">Live Agent</span>
@@ -48,6 +52,7 @@ export default function AIDrawer({ open, onClose }) {
           </button>
         </header>
 
+        {/* Scrollable conversation history */}
         <div className="ai-drawer-body">
           {messages.length === 0 && (
             <p className="muted">
@@ -69,6 +74,7 @@ export default function AIDrawer({ open, onClose }) {
           {err && <div className="error" role="alert">{err}</div>}
         </div>
 
+        {/* Prompt input bar */}
         <form className="ai-drawer-form" onSubmit={handleSubmit}>
           <input
             value={input}

@@ -1,12 +1,15 @@
+// Audience Analytics page: displays follower growth chart and demographic breakdowns.
 import { useEffect, useState } from "react";
 import { Area, AreaChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// AudiencePage component fetching 30-day audience growth and demographic insights
 export default function AudiencePage() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
+  // Fetch 30-day audience analytics on component mount
   useEffect(() => {
     api.get("/api/v1/analytics/audience?days=30")
       .then((r) => setData(r.data))
@@ -17,6 +20,7 @@ export default function AudiencePage() {
 
   return (
     <AppLayout>
+      {/* Page header */}
       <div className="hello">
         <div>
           <h1>Audience Analytics</h1>
@@ -30,6 +34,7 @@ export default function AudiencePage() {
         <article className="card"><p className="muted">Loading audience insights...</p></article>
       ) : (
         <>
+          {/* Summary KPI cards for followers, peak hours, and top location */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
             <article className="card">
               <p className="muted">Total Followers</p>
@@ -45,6 +50,7 @@ export default function AudiencePage() {
             </article>
           </div>
 
+          {/* 30-day follower growth area chart */}
           <article className="card" style={{ marginBottom: 20 }}>
             <h3 style={{ marginBottom: 12 }}>30-Day Follower Growth</h3>
             <div style={{ width: "100%", height: 240 }}>
@@ -59,6 +65,7 @@ export default function AudiencePage() {
             </div>
           </article>
 
+          {/* Demographic breakdown cards: gender, age brackets, and geographic reach */}
           {demo && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
               <article className="card">

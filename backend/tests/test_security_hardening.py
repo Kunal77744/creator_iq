@@ -3,12 +3,14 @@ from app.main import app
 
 
 def test_instagram_sync_fails_cleanly_without_hardcoded_key(client, h, monkeypatch):
+    """Verify Instagram sync returns 503 when RAPIDAPI_KEY is not configured."""
     monkeypatch.setattr("app.services.instagram.RAPIDAPI_KEY", "")
     r = client.post("/api/v1/analytics/instagram/sync", json={"username": "testuser"}, headers=h["creator"])
     assert r.status_code == 503
 
 
 def test_cors_does_not_allow_wildcard_with_credentials():
+    """Verify CORS middleware does not configure a wildcard '*' origin."""
     cors_mw = [m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware"]
     assert len(cors_mw) == 1
     origins = cors_mw[0].kwargs.get("allow_origins", [])
@@ -16,6 +18,7 @@ def test_cors_does_not_allow_wildcard_with_credentials():
 
 
 def test_revenue_rejects_invalid_source_or_status_with_422(client, h):
+    """Verify revenue creation rejects invalid source or status enum values with 422."""
     r1 = client.post(
         "/api/v1/revenue",
         json={"source": "crypto_scam", "title": "Bad Source", "amount": 500},
@@ -32,11 +35,13 @@ def test_revenue_rejects_invalid_source_or_status_with_422(client, h):
 
 
 def test_linkedin_callback_invalid_state_returns_401_not_500(client):
+    """Verify LinkedIn OAuth callback rejects malformed state JWTs with 401."""
     r = client.get("/api/v1/auth/linkedin/callback?code=abc&state=not-a-jwt", follow_redirects=False)
     assert r.status_code == 401
 
 
 def test_rate_limit_blocks_excess_requests_with_429(monkeypatch):
+    """Verify in-memory rate limiting raises HTTP 429 once the request limit is exceeded."""
     import pytest
     from fastapi import HTTPException
     from app.core import rate_limit as rl

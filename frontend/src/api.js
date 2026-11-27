@@ -1,5 +1,7 @@
+// Pre-configured Axios client with JWT auth headers, 401 handling, and error formatting.
 import axios from "axios";
 
+// Base HTTP client pointing to the backend API URL.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
 });

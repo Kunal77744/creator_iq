@@ -9,6 +9,7 @@
 -- A. TABLES FROM THE REFERENCE
 -- ---------------------------------------------------------------------
 
+-- Core user accounts, authentication credentials, and platform roles
 CREATE TABLE users (
     user_id        SERIAL PRIMARY KEY,
     name           VARCHAR(100) NOT NULL,
@@ -21,6 +22,7 @@ CREATE TABLE users (
     updated_at     TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+-- Creator profiles (one-to-one with users)
 CREATE TABLE creators (
     creator_id     SERIAL PRIMARY KEY,
     user_id        INTEGER      NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
@@ -33,6 +35,7 @@ CREATE TABLE creators (
     updated_at     TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+-- Connected social media channels per creator
 CREATE TABLE social_accounts (
     account_id        SERIAL PRIMARY KEY,
     creator_id        INTEGER      NOT NULL REFERENCES creators(creator_id) ON DELETE CASCADE,
@@ -48,6 +51,7 @@ CREATE TABLE social_accounts (
     UNIQUE (platform, platform_user_id)
 );
 
+-- Content items (videos, reels, posts) synced from connected social accounts
 CREATE TABLE posts (
     post_id           SERIAL PRIMARY KEY,
     account_id        INTEGER      NOT NULL REFERENCES social_accounts(account_id) ON DELETE CASCADE,
@@ -62,6 +66,7 @@ CREATE TABLE posts (
     UNIQUE (account_id, platform_post_id)
 );
 
+-- Engagement and reach metrics for each post (one-to-one with posts)
 CREATE TABLE post_analytics (
     analytics_id     SERIAL PRIMARY KEY,
     post_id          INTEGER NOT NULL UNIQUE REFERENCES posts(post_id) ON DELETE CASCADE,
@@ -77,6 +82,7 @@ CREATE TABLE post_analytics (
     recorded_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- Daily audience snapshots and demographic breakdowns per social account
 CREATE TABLE audience_analytics (
     audience_id        SERIAL PRIMARY KEY,
     account_id         INTEGER NOT NULL REFERENCES social_accounts(account_id) ON DELETE CASCADE,
@@ -94,6 +100,7 @@ CREATE TABLE audience_analytics (
     UNIQUE (account_id, date)
 );
 
+-- Creator revenue entries across sponsorships, ads, affiliates, and subscriptions
 CREATE TABLE revenue (
     revenue_id   SERIAL PRIMARY KEY,
     creator_id   INTEGER        NOT NULL REFERENCES creators(creator_id) ON DELETE CASCADE,
@@ -107,6 +114,7 @@ CREATE TABLE revenue (
     created_at   TIMESTAMP      NOT NULL DEFAULT NOW()
 );
 
+-- Generated export reports (PDF or Excel) for a creator
 CREATE TABLE reports (
     report_id     SERIAL PRIMARY KEY,
     creator_id    INTEGER      NOT NULL REFERENCES creators(creator_id) ON DELETE CASCADE,
@@ -118,6 +126,7 @@ CREATE TABLE reports (
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+-- In-app notifications for users
 CREATE TABLE notifications (
     notification_id  SERIAL PRIMARY KEY,
     user_id          INTEGER     NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -128,6 +137,7 @@ CREATE TABLE notifications (
     created_at       TIMESTAMP   NOT NULL DEFAULT NOW()
 );
 
+-- User-saved report filter presets
 CREATE TABLE saved_reports (
     saved_report_id  SERIAL PRIMARY KEY,
     user_id          INTEGER      NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -136,6 +146,7 @@ CREATE TABLE saved_reports (
     created_at       TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+-- Daily aggregated platform metrics per social account
 CREATE TABLE platform_stats (
     stat_id         SERIAL PRIMARY KEY,
     account_id      INTEGER NOT NULL REFERENCES social_accounts(account_id) ON DELETE CASCADE,

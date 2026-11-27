@@ -1,18 +1,22 @@
+// Global top navigation bar with search, date-range selector, AI trigger, notifications, and logout.
 import { useNavigate } from "react-router-dom";
 import { Icon } from "./Icons";
 import { useDateRange } from "./DateRangeContext";
 
+// Renders the sticky topbar and derives user avatar initials from the user's name.
 export default function Topbar({ user, onLogout, onOpenAI }) {
   const navigate = useNavigate();
   const { days, setDays } = useDateRange();
   const initials = user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
   return (
     <header className="tb">
+      {/* Global search input */}
       <label className="tb-search">
         <Icon name="search" />
         <input type="search" placeholder="Search content, analytics, reports..." aria-label="Search" />
       </label>
 
+      {/* Right-aligned controls: date range, AI button, notifications, user profile, logout */}
       <div className="tb-right">
         <label className="tb-range">
           <Icon name="calendar" />

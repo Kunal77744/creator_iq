@@ -1,4 +1,6 @@
+# Docker Compose stack for CreatorIQ: Postgres (with pgvector), Redis, FastAPI backend, Celery worker/beat, and React frontend.
 services:
+  # PostgreSQL 16 with pgvector extension for relational data and vector embeddings
   postgres:
     image: pgvector/pgvector:pg16
     environment:
@@ -15,6 +17,7 @@ services:
       timeout: 5s
       retries: 10
 
+  # Redis broker and cache backend
   redis:
     image: redis:7-alpine
     ports:
@@ -25,6 +28,7 @@ services:
       timeout: 5s
       retries: 10
 
+  # FastAPI backend API server
   backend:
     build: ./backend
     ports:
@@ -49,6 +53,7 @@ services:
       timeout: 5s
       retries: 10
 
+  # Background Celery worker for async tasks (syncs, indexing, notifications)
   celery_worker:
     build: ./backend
     command: celery -A app.workers.celery_app worker --loglevel=info
@@ -64,6 +69,7 @@ services:
       redis:
         condition: service_healthy
 
+  # Celery Beat scheduler for periodic background jobs
   celery_beat:
     build: ./backend
     command: celery -A app.workers.celery_app beat --loglevel=info
@@ -79,6 +85,7 @@ services:
       redis:
         condition: service_healthy
 
+  # Nginx-served React/Vite frontend
   frontend:
     build:
       context: ./frontend
@@ -90,5 +97,6 @@ services:
       backend:
         condition: service_healthy
 
+# Named volume to persist PostgreSQL data across container restarts
 volumes:
   pgdata:

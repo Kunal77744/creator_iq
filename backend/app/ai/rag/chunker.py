@@ -1,3 +1,6 @@
+"""Text chunking helper for splitting creator content before embedding."""
+
+
 def chunk_text(text: str, chunk_size: int = 400, overlap: int = 50) -> list[str]:
     """Split text into overlapping character chunks preserving word boundaries where possible."""
     cleaned = " ".join((text or "").split())

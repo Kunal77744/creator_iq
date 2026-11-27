@@ -1,8 +1,10 @@
+// Admin User Management page: lists all users and allows admins to change roles or toggle account status.
 import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// Available user roles that an administrator can assign
 const ROLES = [
   { value: "creator", label: "Creator" },
   { value: "agency", label: "Agency" },
@@ -10,6 +12,7 @@ const ROLES = [
   { value: "admin", label: "Administrator" },
 ];
 
+// AdminUsers page component for viewing and managing platform user accounts
 export default function AdminUsers() {
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
@@ -17,6 +20,7 @@ export default function AdminUsers() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
 
+  // Load all user accounts on initial mount
   useEffect(() => {
     api.get("/api/v1/admin/users")
       .then((r) => setUsers(r.data))
@@ -24,6 +28,7 @@ export default function AdminUsers() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Send partial user update (role or active status) and sync local state
   async function update(id, changes) {
     setError("");
     setBusyId(id);
@@ -39,6 +44,7 @@ export default function AdminUsers() {
 
   return (
     <AppLayout>
+      {/* Page header */}
       <div className="hello">
         <div>
           <h1>User Management</h1>
@@ -48,6 +54,7 @@ export default function AdminUsers() {
 
       {error && <div className="error" role="alert">{error}</div>}
 
+      {/* Users table card */}
       <article className="card">
         {loading ? (
           <p className="muted">Loading users...</p>
@@ -59,6 +66,7 @@ export default function AdminUsers() {
               </thead>
               <tbody>
                 {users.map((u) => {
+                  // Prevent the logged-in admin from modifying their own role or status
                   const self = u.user_id === me.user_id;
                   return (
                     <tr key={u.user_id}>

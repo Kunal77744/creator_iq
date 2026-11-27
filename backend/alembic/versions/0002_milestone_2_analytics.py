@@ -19,6 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Create social_accounts, posts, post_analytics, and audience_analytics tables."""
     # 1. social_accounts
     op.create_table(
         'social_accounts',
@@ -99,6 +100,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop milestone 2 analytics tables in reverse dependency order."""
     op.drop_table('audience_analytics')
     op.drop_table('post_analytics')
     op.drop_table('posts')

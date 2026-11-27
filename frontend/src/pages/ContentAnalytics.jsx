@@ -1,8 +1,10 @@
+// Content & Growth Analytics page: shows 30-day views chart, side-by-side post comparison, and AI post analysis.
 import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// ContentAnalytics page component for exploring post metrics and running AI deep-dives
 export default function ContentAnalytics() {
   const [posts, setPosts] = useState([]);
   const [perf, setPerf] = useState([]);
@@ -15,6 +17,7 @@ export default function ContentAnalytics() {
   const [analyzingId, setAnalyzingId] = useState(null);
   const [err, setErr] = useState("");
 
+  // Fetch posts and 30-day performance series whenever the platform filter changes
   useEffect(() => {
     const q = platform === "all" ? "" : `?platform=${platform}`;
     Promise.all([
@@ -24,6 +27,7 @@ export default function ContentAnalytics() {
       .then(([r1, r2]) => {
         const list = Array.isArray(r1.data) ? r1.data : (r1.data?.posts || []);
         setPosts(list);
+        // Pre-select the first two posts for quick side-by-side comparison
         if (list.length >= 2) {
           setP1(String(list[0].post_id));
           setP2(String(list[1].post_id));
@@ -33,6 +37,7 @@ export default function ContentAnalytics() {
       .catch((e) => setErr(errorMessage(e)));
   }, [platform]);
 
+  // Compare two selected posts via the backend comparison endpoint
   async function runCompare() {
     if (!p1 || !p2 || p1 === p2) return;
     setErr("");
@@ -44,6 +49,7 @@ export default function ContentAnalytics() {
     }
   }
 
+  // Request a RAG-backed AI analysis and next-idea suggestions for a single post
   async function analyzePost(postId) {
     setAnalyzingId(postId);
     setErr("");
@@ -57,10 +63,12 @@ export default function ContentAnalytics() {
     }
   }
 
+  // Filter posts client-side by title search query
   const filtered = posts.filter((p) => (p.title || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <AppLayout>
+      {/* Page header with platform selector */}
       <div className="hello">
         <div>
           <h1>Content & Growth Analytics</h1>
@@ -77,6 +85,7 @@ export default function ContentAnalytics() {
 
       {err && <div className="error" role="alert">{err}</div>}
 
+      {/* 30-day views bar chart */}
       <article className="card" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 12 }}>30-Day Content Views Trend</h3>
         <div style={{ width: "100%", height: 240 }}>
@@ -91,6 +100,7 @@ export default function ContentAnalytics() {
         </div>
       </article>
 
+      {/* Side-by-side content comparison widget (shown when at least 2 posts exist) */}
       {posts.length >= 2 && (
         <article className="card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 10 }}>Content Comparison</h3>
@@ -113,6 +123,7 @@ export default function ContentAnalytics() {
         </article>
       )}
 
+      {/* Searchable table of published posts with per-row AI analysis button */}
       <article className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
           <h3>Published Content ({filtered.length})</h3>
@@ -160,6 +171,7 @@ export default function ContentAnalytics() {
         </div>
       </article>
 
+      {/* AI deep-dive result card for the selected post */}
       {aiPost && (
         <article className="ai-brief" style={{ marginTop: 16 }}>
           <div className="ai-brief-head">

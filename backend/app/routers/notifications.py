@@ -1,3 +1,5 @@
+"""Notification endpoints for listing alerts and marking notifications as read."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -10,6 +12,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications & Alerts"])
 
 
 def _seed_if_empty(user: User, db: Session) -> None:
+    """Seed sample notifications once for @creatoriq.com demo accounts if none exist."""
     if not user.email.endswith("@creatoriq.com"):
         return
     exists = db.scalar(select(Notification.notification_id).where(Notification.user_id == user.user_id))
@@ -28,6 +31,7 @@ def _seed_if_empty(user: User, db: Session) -> None:
 
 @router.get("")
 def list_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return all notifications for the current user along with the unread count."""
     _seed_if_empty(current_user, db)
     rows = db.scalars(
         select(Notification)
@@ -53,6 +57,7 @@ def list_notifications(current_user: User = Depends(get_current_user), db: Sessi
 
 @router.patch("/{notification_id}/read")
 def mark_read(notification_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Mark a single notification owned by the current user as read."""
     row = db.scalar(
         select(Notification).where(
             Notification.notification_id == notification_id, Notification.user_id == current_user.user_id
@@ -67,6 +72,7 @@ def mark_read(notification_id: int, current_user: User = Depends(get_current_use
 
 @router.post("/read-all")
 def mark_all_read(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Mark all notifications for the current user as read."""
     db.execute(
         update(Notification).where(Notification.user_id == current_user.user_id).values(is_read=True)
     )

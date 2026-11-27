@@ -1,8 +1,10 @@
+// Revenue & Monetization page: tracks creator earnings, provides AI sponsorship rate estimation, and manages the ledger.
 import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// RevenuePage component for viewing revenue breakdown and adding/deleting earnings entries
 export default function RevenuePage() {
   const [data, setData] = useState(null);
   const [title, setTitle] = useState("");
@@ -14,6 +16,7 @@ export default function RevenuePage() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Fetch revenue summary, breakdown chart data, and ledger entries
   const load = () => {
     api.get("/api/v1/revenue")
       .then((r) => setData(r.data))
@@ -22,6 +25,7 @@ export default function RevenuePage() {
 
   useEffect(() => { load(); }, []);
 
+  // Fetch AI-recommended sponsorship rate and pre-fill the form
   async function estimateRate() {
     setErr("");
     try {
@@ -36,6 +40,7 @@ export default function RevenuePage() {
     }
   }
 
+  // Create a new revenue entry and reload the ledger
   async function addEntry(e) {
     e.preventDefault();
     if (!title.trim() || !amount) return;
@@ -57,6 +62,7 @@ export default function RevenuePage() {
     }
   }
 
+  // Delete an existing revenue entry by ID and reload the ledger
   async function removeEntry(id) {
     try {
       await api.delete(`/api/v1/revenue/${id}`);
@@ -68,6 +74,7 @@ export default function RevenuePage() {
 
   return (
     <AppLayout>
+      {/* Page header */}
       <div className="hello">
         <div>
           <h1>Revenue & Monetization</h1>
@@ -77,6 +84,7 @@ export default function RevenuePage() {
 
       {err && <div className="error" role="alert">{err}</div>}
 
+      {/* Summary KPI cards: total, paid, and pending revenue */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
         <article className="card">
           <p className="muted">Total Revenue</p>
@@ -92,6 +100,7 @@ export default function RevenuePage() {
         </article>
       </div>
 
+      {/* Revenue breakdown chart alongside the add-entry form */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 20 }}>
         <article className="card">
           <h3 style={{ marginBottom: 12 }}>Revenue by Source</h3>
@@ -141,6 +150,7 @@ export default function RevenuePage() {
         </article>
       </div>
 
+      {/* Earnings ledger table */}
       <article className="card">
         <h3 style={{ marginBottom: 12 }}>Earnings Ledger</h3>
         <div className="table-wrap">

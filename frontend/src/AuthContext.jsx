@@ -1,8 +1,10 @@
+// Authentication context providing current user state and login/register/logout helpers.
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "./api";
 
 export const AuthContext = createContext(null);
 
+// Provider component that manages session state and persists JWT tokens in localStorage.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +23,7 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Authenticate with email and password, store the returned token, and set user state.
   async function login(email, password) {
     // Backend uses the OAuth2 password flow, which expects form-encoded data.
     const form = new URLSearchParams({ username: email, password });
@@ -29,10 +32,12 @@ export function AuthProvider({ children }) {
     setUser(res.data.user);
   }
 
+  // Create a new user account via the registration endpoint.
   async function register(payload) {
     await api.post("/api/v1/auth/register", payload);
   }
 
+  // Clear the stored token and reset the authenticated user state.
   function logout() {
     localStorage.removeItem("creatoriq_token");
     setUser(null);
@@ -45,4 +50,5 @@ export function AuthProvider({ children }) {
   );
 }
 
+// Convenience hook to access authentication state and actions from any component.
 export const useAuth = () => useContext(AuthContext);

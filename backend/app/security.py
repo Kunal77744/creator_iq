@@ -1,3 +1,4 @@
+"""Password hashing (bcrypt) and JWT access token creation/verification helpers."""
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -7,10 +8,12 @@ from .config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, BCRYPT_ROUNDS, SECRE
 
 
 def hash_password(password: str) -> str:
+    """Hash a plaintext password using bcrypt with the configured salt rounds."""
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode("utf-8")
 
 
 def verify_password(password: str, hashed: str) -> bool:
+    """Verify a plaintext password against a stored bcrypt hash."""
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
     except ValueError:
@@ -18,6 +21,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: int, role: str) -> str:
+    """Generate a signed JWT access token containing user ID, role, and expiration."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
@@ -29,4 +33,5 @@ def create_access_token(user_id: int, role: str) -> str:
 
 
 def decode_access_token(token: str) -> dict:
+    """Decode and validate a JWT access token using the configured secret and algorithm."""
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

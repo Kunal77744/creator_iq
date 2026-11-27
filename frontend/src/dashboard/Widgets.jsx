@@ -1,3 +1,5 @@
+// Core dashboard widgets: KPI summary row, follower growth chart, content performance,
+// top posts table with side-by-side comparison, audience demographics, and revenue card.
 import { useEffect, useState } from "react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -6,11 +8,14 @@ import api from "../api";
 import { AUDIENCE_SHADES, PLATFORM_COLORS } from "./data";
 import { Icon, PlatformBadge } from "./Icons";
 
+// Compact number formatter (e.g., 1.2M, 45.0K) and shared axis styling.
 const k = (n) => (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n);
 const AXIS = { fontSize: 12, fill: "var(--muted)" };
 
+// Converts USD estimate to INR display string.
 const money = (usd) => `₹${Math.round(usd * 83).toLocaleString("en-IN")}`;
 
+// Renders the 6-card KPI summary row for the selected platform and date range.
 export function KpiRow({ overview, platform, days }) {
   if (!overview) {
     return <section className="kpis" aria-label="Key metrics">
@@ -30,6 +35,7 @@ export function KpiRow({ overview, platform, days }) {
     </section>;
   }
 
+  // Adapt labels and subtitles to match YouTube, Instagram, or LinkedIn terminology.
   const o = overview;
   const isIg = platform === "Instagram";
   const isLi = platform === "LinkedIn";
@@ -59,10 +65,12 @@ export function KpiRow({ overview, platform, days }) {
   );
 }
 
+// Area chart showing follower/subscriber growth over the selected date window.
 export function FollowerGrowth({ platform, days }) {
   const [state, setState] = useState({ loading: true, history: [], connected: true, live: false });
   const plat = platform === "All Platforms" ? "all" : platform.toLowerCase();
 
+  // Fetch audience growth history whenever platform or date range changes.
   useEffect(() => {
     setState((s) => ({ ...s, loading: true }));
     api.get(`/api/v1/analytics/audience?platform=${plat}&days=${days}`)
@@ -122,11 +130,13 @@ export function FollowerGrowth({ platform, days }) {
   );
 }
 
+// Tabbed bar chart showing Views, Likes, Comments, or Shares per day.
 export function ContentPerformance({ platform, days }) {
   const [perfData, setPerfData] = useState(null);
   const [tab, setTab] = useState("Views");
   const plat = platform === "All Platforms" ? "all" : (platform || "all").toLowerCase();
 
+  // Fetch daily content performance breakdown when platform or range changes.
   useEffect(() => {
     api.get(`/api/v1/analytics/content-performance?platform=${plat}&days=${days}`)
       .then((res) => setPerfData(res.data))
@@ -178,6 +188,7 @@ export function ContentPerformance({ platform, days }) {
   );
 }
 
+// Table of top-performing posts with an expandable side-by-side post comparison tool.
 export function TopPosts({ posts: parentPosts }) {
   const [posts, setPosts] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
@@ -185,6 +196,7 @@ export function TopPosts({ posts: parentPosts }) {
   const [selectedB, setSelectedB] = useState("");
   const [compData, setCompData] = useState(null);
 
+  // Use posts passed from parent if provided; otherwise fetch top posts sorted by views.
   useEffect(() => {
     if (parentPosts !== undefined) {
       setPosts(parentPosts);
@@ -205,6 +217,7 @@ export function TopPosts({ posts: parentPosts }) {
       .catch((err) => console.error(err));
   }, [parentPosts]);
 
+  // Fetch comparison summary when the comparison panel is open and two distinct posts are chosen.
   useEffect(() => {
     if (showCompare && selectedA && selectedB && selectedA !== selectedB) {
       api.get(`/api/v1/analytics/posts/compare?post_ids=${selectedA},${selectedB}`)
@@ -338,10 +351,12 @@ export function TopPosts({ posts: parentPosts }) {
   );
 }
 
+// Tabbed donut chart breaking down audience demographics by Age, Gender, and Location.
 export function Audience({ followers, platform }) {
   const [tab, setTab] = useState("Age");
   const [demo, setDemo] = useState(null);
 
+  // Load audience demographic segments for the selected platform.
   useEffect(() => {
     const plat = !platform || platform === "All Platforms" ? "all" : platform.toLowerCase();
     api.get(`/api/v1/analytics/audience?platform=${plat}&days=30`)
@@ -395,9 +410,11 @@ export function Audience({ followers, platform }) {
   );
 }
 
+// Compact revenue summary card displaying paid/pending totals and mini bar chart.
 export function Revenue({ overview, days }) {
   const [rev, setRev] = useState(null);
 
+  // Fetch tracked revenue and sponsorship summary on mount.
   useEffect(() => {
     api.get("/api/v1/revenue")
       .then((res) => setRev(res.data))

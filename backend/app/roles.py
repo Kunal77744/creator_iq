@@ -4,6 +4,7 @@ AGENCY = "agency"
 MARKETING_TEAM = "marketing_team"
 ADMIN = "admin"
 
+# Human-readable display names for each role
 ROLE_LABELS = {
     CREATOR: "Creator",
     AGENCY: "Agency",

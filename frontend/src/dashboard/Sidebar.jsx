@@ -1,11 +1,14 @@
+// Left navigation sidebar displaying role-specific links and an optional upgrade card.
 import { NavLink } from "react-router-dom";
 import { NAV_BY_ROLE } from "./data";
 import { Icon } from "./Icons";
 
+// Renders the brand logo, role-based navigation links, and Pro Plan promotion.
 export default function Sidebar({ role }) {
   const items = NAV_BY_ROLE[role] || NAV_BY_ROLE.creator;
   return (
     <aside className="sb">
+      {/* Application brand header */}
       <div className="sb-brand">
         <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true">
           <rect x="2" y="14" width="6" height="12" rx="2" fill="#8b7bf2" />
@@ -15,6 +18,7 @@ export default function Sidebar({ role }) {
         <span>CreatorIQ</span>
       </div>
 
+      {/* Role-specific navigation menu */}
       <nav aria-label="Main">
         {items.map((n) => (
           <NavLink key={n.label} to={n.to} end className={({ isActive }) => "sb-item" + (isActive ? " active" : "")}>
@@ -25,6 +29,7 @@ export default function Sidebar({ role }) {
         ))}
       </nav>
 
+      {/* Upgrade prompt shown for creator/agency roles */}
       {role === "creator" || role === "agency" && (
         <div className="sb-plan">
           <Icon name="crown" size={22} />

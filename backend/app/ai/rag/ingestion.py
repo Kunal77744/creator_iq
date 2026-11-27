@@ -1,3 +1,5 @@
+"""RAG content ingestion pipeline that chunks, embeds, and stores posts and YouTube comments."""
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -42,6 +44,7 @@ def index_creator_content(db: Session, user_id: int) -> int:
         a = post.analytics
         views = a.views if a else 0
         eng = a.engagement_rate if a else 0.0
+        # Build a searchable summary document for the post and store its embedded chunks
         doc = (
             f"Platform: {platform}. "
             f"Title: {post.caption or 'Untitled'}. "
@@ -70,6 +73,7 @@ def index_creator_content(db: Session, user_id: int) -> int:
             )
             total_chunks += 1
 
+        # Fetch and index audience comments for the top YouTube videos
         if post.post_id in comment_target_ids and acc is not None:
             comments = fetch_video_comments(
                 post.platform_post_id,

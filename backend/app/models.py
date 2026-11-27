@@ -28,6 +28,8 @@ from .database import Base
 
 
 class User(Base):
+    """Core user account storing authentication credentials and platform role."""
+
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("role IN ('creator', 'agency', 'marketing_team', 'admin')", name="ck_users_role"),
@@ -44,6 +46,7 @@ class User(Base):
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
+    # One-to-one optional profile relationships
     creator: Mapped["Creator | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
@@ -53,6 +56,8 @@ class User(Base):
 
 
 class Creator(Base):
+    """Creator profile linked one-to-one with a User account."""
+
     __tablename__ = "creators"
 
     creator_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -76,6 +81,8 @@ class Creator(Base):
 
 
 class Agency(Base):
+    """Talent agency profile linked one-to-one with a User account."""
+
     __tablename__ = "agencies"
 
     agency_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -96,6 +103,8 @@ class Agency(Base):
 
 
 class AgencyCreator(Base):
+    """Association table linking agencies to the creators they manage."""
+
     __tablename__ = "agency_creators"
 
     agency_id: Mapped[int] = mapped_column(
@@ -108,6 +117,8 @@ class AgencyCreator(Base):
 
 
 class SocialAccount(Base):
+    """Connected social media channel belonging to a creator."""
+
     __tablename__ = "social_accounts"
     __table_args__ = (
         UniqueConstraint("creator_id", "platform", "platform_user_id", name="uq_creator_social_platform_user"),
@@ -142,6 +153,8 @@ class SocialAccount(Base):
 
 
 class Post(Base):
+    """Individual content item (video, reel, short, etc.) fetched from a social account."""
+
     __tablename__ = "posts"
     __table_args__ = (
         UniqueConstraint("account_id", "platform_post_id", name="uq_account_platform_post"),
@@ -167,6 +180,8 @@ class Post(Base):
 
 
 class PostAnalytics(Base):
+    """Engagement and reach metrics for a single Post."""
+
     __tablename__ = "post_analytics"
 
     analytics_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -188,6 +203,8 @@ class PostAnalytics(Base):
 
 
 class AudienceAnalytics(Base):
+    """Daily audience snapshot (followers, demographics, active hours) for a SocialAccount."""
+
     __tablename__ = "audience_analytics"
     __table_args__ = (
         UniqueConstraint("account_id", "date", name="uq_account_audience_date"),
@@ -213,6 +230,8 @@ class AudienceAnalytics(Base):
 
 
 class RevenueEntry(Base):
+    """Income record tracked by a user across sponsorships, ads, affiliates, etc."""
+
     __tablename__ = "revenues"
 
     revenue_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -229,6 +248,8 @@ class RevenueEntry(Base):
 
 
 class Notification(Base):
+    """In-app notification message for a user."""
+
     __tablename__ = "notifications"
 
     notification_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -243,6 +264,8 @@ class Notification(Base):
 
 
 class ContentEmbedding(Base):
+    """Vector embedding chunk for a user's post content used in semantic search / AI RAG."""
+
     __tablename__ = "content_embeddings"
 
     embedding_id: Mapped[int] = mapped_column(Integer, primary_key=True)

@@ -9,6 +9,7 @@ from .conftest import auth, register
 
 
 def _seed_creator_posts(email: str = "creator@creatoriq.com") -> None:
+    """Create a sample YouTube account with two posts and analytics for a test user."""
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == email))
         creator = db.scalar(select(Creator).where(Creator.user_id == user.user_id))
@@ -63,11 +64,13 @@ def _seed_creator_posts(email: str = "creator@creatoriq.com") -> None:
 
 
 def test_ai_rag_endpoints_require_auth(client):
+    """Verify RAG index and query endpoints reject unauthenticated requests."""
     assert client.post("/api/v1/ai/index").status_code == 401
     assert client.post("/api/v1/ai/rag-query", json={"query": "top videos"}).status_code == 401
 
 
 def test_rag_query_empty_state_returns_clean_message(client, h):
+    """Verify querying before indexing returns an empty citations list and helpful message."""
     r = client.post("/api/v1/ai/rag-query", json={"query": "best performing video"}, headers=h["creator"])
     assert r.status_code == 200
     body = r.json()
@@ -76,6 +79,7 @@ def test_rag_query_empty_state_returns_clean_message(client, h):
 
 
 def test_rag_index_and_retrieve_with_citations(client, h):
+    """Verify indexing posts enables semantic retrieval and SQL superlative ranking."""
     _seed_creator_posts()
 
     idx = client.post("/api/v1/ai/index", headers=h["creator"])
@@ -105,6 +109,7 @@ def test_rag_index_and_retrieve_with_citations(client, h):
 
 
 def test_rag_multi_tenant_isolation(client, h):
+    """Verify one creator's indexed embeddings are never returned to another creator."""
     _seed_creator_posts()
     idx = client.post("/api/v1/ai/index", headers=h["creator"])
     assert idx.json()["indexed_chunks"] > 0
@@ -124,6 +129,7 @@ def test_rag_multi_tenant_isolation(client, h):
 
 
 def test_rag_indexes_youtube_comments_and_handles_api_errors(client, h, monkeypatch):
+    """Verify YouTube comment fetching, error handling, and comment-chunk retrieval."""
     from app.services import youtube as yt_svc
 
     # 1. Live fetch_video_comments parses commentThreads response and safely skips errors

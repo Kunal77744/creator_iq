@@ -1,3 +1,4 @@
+// Reusable icon wrapper and social platform badge components backed by lucide-react.
 import {
   LayoutDashboard, User, Link2, FileText, BarChart3, Users, CircleDollarSign, FileBarChart,
   Bell, Settings, Eye, Heart, MessageSquare, Share2, Crown, Youtube, Instagram, Github, Search,
@@ -5,6 +6,7 @@ import {
   Megaphone, FolderOpen, ShieldAlert, Plug, Activity, TrendingUp, Target, Wallet, MousePointerClick, Briefcase,
 } from "lucide-react";
 
+// Lookup table mapping short string keys to lucide-react icon components.
 const MAP = {
   dash: LayoutDashboard, user: User, link: Link2, content: FileText, analytics: BarChart3,
   audience: Users, revenue: CircleDollarSign, reports: FileBarChart, bell: Bell, settings: Settings,
@@ -15,11 +17,13 @@ const MAP = {
   trend: TrendingUp, target: Target, wallet: Wallet, click: MousePointerClick, briefcase: Briefcase,
 };
 
+// Renders a lucide-react icon by its key name with consistent stroke width.
 export function Icon({ name, size = 18, ...rest }) {
   const C = MAP[name];
   return C ? <C size={size} strokeWidth={1.8} aria-hidden="true" {...rest} /> : null;
 }
 
+// Renders a color-coded circular badge for YouTube, Instagram, LinkedIn, or generic platforms.
 export function PlatformBadge({ name, size = 28 }) {
   const style = { width: size, height: size };
   const lower = (name || "").toLowerCase();

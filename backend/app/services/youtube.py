@@ -169,11 +169,13 @@ class YouTubeAPIError(Exception):
 
 
 def _get_json(url: str) -> dict:
+    """Perform a GET request to the YouTube Data API and parse the JSON response."""
     req = urllib.request.Request(url, headers={"User-Agent": "CreatorIQ/2.0"})
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except HTTPError as err:
+        # Parse Google API error JSON to provide actionable messages for common failures
         reason, msg = "", ""
         try:
             body = json.loads(err.read().decode("utf-8"))
@@ -202,6 +204,7 @@ def fetch_youtube_channel_data(handle_or_id: str = "@techcreator", api_key: str 
     key = api_key or YOUTUBE_API_KEY
     clean_handle = handle_or_id.strip()
 
+    # Return demo channel data when no API key is configured
     if not key:
         return {
             "is_live": False,
@@ -215,6 +218,7 @@ def fetch_youtube_channel_data(handle_or_id: str = "@techcreator", api_key: str 
             "videos": DEMO_VIDEOS,
         }
 
+    # Resolve channel metadata and uploads playlist ID via @handle or UC... channel ID
     q = urllib.parse.quote(clean_handle)
     lookup = f"forHandle={q}" if clean_handle.startswith("@") else f"id={q}"
     data = _get_json(
@@ -228,6 +232,7 @@ def fetch_youtube_channel_data(handle_or_id: str = "@techcreator", api_key: str 
     snippet, stats = item.get("snippet", {}), item.get("statistics", {})
     uploads_id = item.get("contentDetails", {}).get("relatedPlaylists", {}).get("uploads")
 
+    # Fetch up to 50 recent video IDs from the uploads playlist, then load their statistics
     videos = []
     if uploads_id:
         pl = _get_json(

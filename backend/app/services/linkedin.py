@@ -22,6 +22,8 @@ USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 
 
 class LinkedInAPIError(Exception):
+    """Raised when a LinkedIn OAuth or UserInfo API call fails."""
+
     def __init__(self, message: str, status: int = 502):
         super().__init__(message)
         self.message = message
@@ -42,6 +44,7 @@ def get_linkedin_login_url(state: str) -> str:
 
 def exchange_code_for_token(code: str) -> dict:
     """Exchanges authorization code for access token with LinkedIn."""
+    # Form-encode the OAuth2 authorization_code exchange payload
     data = urllib.parse.urlencode({
         "grant_type": "authorization_code",
         "code": code,
@@ -55,6 +58,7 @@ def exchange_code_for_token(code: str) -> dict:
         data=data,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
+    # Call LinkedIn token endpoint and surface errors as LinkedInAPIError
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -68,6 +72,7 @@ def exchange_code_for_token(code: str) -> dict:
 
 def fetch_linkedin_userinfo(access_token: str) -> dict:
     """Fetches user profile info from LinkedIn OpenID UserInfo endpoint."""
+    # Authenticate with Bearer access token and fetch OpenID profile claims
     req = urllib.request.Request(
         USERINFO_URL,
         headers={"Authorization": f"Bearer {access_token}"},

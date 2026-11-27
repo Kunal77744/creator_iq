@@ -1,3 +1,5 @@
+"""Database-backed tool functions used by the Growth Agent and the MCP server."""
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,6 +19,7 @@ def get_channel_kpis(db: Session, user_id: int) -> dict:
     if not accounts:
         return {"connected": False, "followers": 0, "total_views": 0, "total_posts": 0, "avg_engagement_rate": 0.0}
 
+    # Aggregate posts and engagement rates across all active social accounts
     posts = db.scalars(select(Post).where(Post.account_id.in_([a.account_id for a in accounts]))).all()
     rates = [p.analytics.engagement_rate for p in posts if p.analytics and p.analytics.engagement_rate is not None]
     return {
@@ -53,6 +56,7 @@ def calculate_sponsorship_rate(db: Session, user_id: int) -> dict:
     kpis = get_channel_kpis(db, user_id)
     followers = kpis["followers"]
     eng = kpis["avg_engagement_rate"]
+    # Base rate scales with followers (minimum 5,000 INR) and is boosted by engagement rate
     base = max(5000.0, followers * 0.15)
     multiplier = 1.0 + (min(eng, 15.0) / 10.0)
     recommended = round(base * multiplier, 2)

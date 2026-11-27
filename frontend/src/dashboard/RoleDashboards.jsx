@@ -1,3 +1,4 @@
+// Role-specific dashboard views for Agency, Marketing Team, and Administrator accounts.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -6,10 +7,12 @@ import {
 import api, { errorMessage } from "../api";
 import { Icon, PlatformBadge } from "./Icons";
 
+// Shared chart styling and number formatting helpers.
 const AXIS = { fontSize: 12, fill: "var(--muted)" };
 const TIP = { borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface)" };
 const K = (n) => (n >= 1000 ? `${n / 1000}M` : `${n}K`);
 
+// Displays a single metric card with an icon, value, optional delta, and subtitle.
 function KpiCard({ icon, tone, label, value, delta, sub }) {
   return (
     <article className="card kpi">
@@ -26,6 +29,7 @@ function KpiCard({ icon, tone, label, value, delta, sub }) {
   );
 }
 
+// Generic dashboard card wrapper with a title and an optional "View All" link.
 function Card({ title, link, children }) {
   return (
     <article className="card">
@@ -40,6 +44,7 @@ function Card({ title, link, children }) {
   );
 }
 
+// Horizontal color-dot legend rendered above multi-series line charts.
 function Legend({ items }) {
   return (
     <ul className="legend">
@@ -48,6 +53,7 @@ function Legend({ items }) {
   );
 }
 
+// Donut chart with a centered total label and percentage breakdown list.
 function Donut({ data, center, small }) {
   return (
     <div className="aud">
@@ -70,6 +76,7 @@ function Donut({ data, center, small }) {
   );
 }
 
+// Reusable two-series line chart for views/reach vs. engagement trends.
 function TwoLineChart({ data, keys, colors, height = 250 }) {
   return (
     <div className="chart" style={{ height }}>
@@ -93,10 +100,12 @@ function TwoLineChart({ data, keys, colors, height = 250 }) {
 }
 
 /* ------------------------------------------------------------------ Agency */
+// Dashboard for Agency users showing roster KPIs, aggregated trends, and creator table.
 export function AgencyDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
+  // Fetch aggregated agency roster metrics on mount.
   useEffect(() => {
     api.get("/api/v1/agencies/me/overview")
       .then((r) => setData(r.data))
@@ -177,12 +186,15 @@ export function AgencyDashboard() {
 }
 
 /* --------------------------------------------------------------- Marketing */
+// Maps campaign status labels to badge CSS classes.
 const STATUS_CLASS = { Active: "st-on", Completed: "st-done", Scheduled: "st-soon" };
 
+// Dashboard for Marketing Team users showing campaign reach, top campaigns, and content mix.
 export function MarketingDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
+  // Load marketing campaign overview metrics on mount.
   useEffect(() => {
     api.get("/api/v1/analytics/marketing/overview")
       .then((r) => setData(r.data))
@@ -273,6 +285,7 @@ export function MarketingDashboard() {
 }
 
 /* ------------------------------------------------------------------- Admin */
+// KPI card definitions for each user role in the platform.
 const ROLE_CARDS = [
   { role: "creator", label: "Creators", icon: "user", tone: "rose" },
   { role: "agency", label: "Agencies", icon: "briefcase", tone: "blue" },
@@ -280,11 +293,13 @@ const ROLE_CARDS = [
   { role: "admin", label: "Administrators", icon: "shield", tone: "indigo" },
 ];
 
+// Dashboard for Admin users displaying user counts, growth charts, and system activity.
 export function AdminDashboard() {
   const [users, setUsers] = useState(null);
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState("");
 
+  // Fetch both the full user list and platform-wide overview stats in parallel.
   useEffect(() => {
     Promise.all([
       api.get("/api/v1/admin/users"),
@@ -300,6 +315,7 @@ export function AdminDashboard() {
   if (error) return <div className="error" role="alert">{error}</div>;
   if (!users || !overview) return <p className="muted">Loading platform stats...</p>;
 
+  // Derive per-role totals and the 5 most recently registered accounts.
   const count = (role) => users.filter((u) => u.role === role).length;
   const recent = [...users].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
 

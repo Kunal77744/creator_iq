@@ -1,14 +1,17 @@
+// Account Settings page: lets users update their display name, change password, or deactivate their account.
 import { useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
 import AppLayout from "../components/AppLayout.jsx";
 import api, { errorMessage } from "../api";
 
+// Form for updating the user's display name
 function NameForm() {
   const { user, updateUser } = useAuth();
   const [name, setName] = useState(user.name);
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [busy, setBusy] = useState(false);
 
+  // Validate and persist the updated name
   async function onSubmit(e) {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -40,12 +43,14 @@ function NameForm() {
   );
 }
 
+// Form for changing the current user's password with client-side strength checks
 function PasswordForm() {
   const [f, setF] = useState({ current: "", next: "", confirm: "" });
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
+  // Validate password rules and submit password change request
   async function onSubmit(e) {
     e.preventDefault();
     setMsg({ type: "", text: "" });
@@ -79,6 +84,7 @@ function PasswordForm() {
   );
 }
 
+// Confirmation section for self-deactivating a non-admin account
 function DangerZone() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -86,6 +92,7 @@ function DangerZone() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Confirm password and deactivate the account, then log the user out
   async function onConfirm(e) {
     e.preventDefault();
     setError("");
@@ -123,6 +130,7 @@ function DangerZone() {
   );
 }
 
+// Settings page layout combining account details, password change, and danger zone
 export default function Settings() {
   return (
     <AppLayout>
