@@ -29,6 +29,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/creatoriq
       REDIS_URL: redis://redis:6379/0
@@ -51,6 +53,8 @@ services:
   celery_worker:
     build: ./backend
     command: celery -A app.workers.celery_app worker --loglevel=info
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/creatoriq
       REDIS_URL: redis://redis:6379/0

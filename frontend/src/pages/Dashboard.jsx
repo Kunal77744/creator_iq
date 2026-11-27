@@ -119,14 +119,8 @@ function CreatorDashboard() {
           ))}
         </div>
         <div className="chips actions" role="group" aria-label="Channel sync actions">
-          <button className="chip ghost" onClick={handleSync} disabled={syncing} title="Connect / refresh a YouTube channel">
-            <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync YouTube"}
-          </button>
-          <button className="chip ghost" onClick={handleInstagramSync} disabled={syncing} title="Connect / refresh an Instagram account">
-            <Icon name="plus" size={14} /> {syncing ? "Syncing..." : "Sync Instagram"}
-          </button>
-          <button className="chip ghost" onClick={handleLinkedInConnect} disabled={syncing} title="Connect LinkedIn profile via official OAuth">
-            <PlatformBadge name="LinkedIn" size={14} /> Connect LinkedIn
+          <button className="chip ghost" onClick={() => navigate("/social-accounts")} title="Connect or sync YouTube, Instagram & LinkedIn">
+            <Icon name="link" size={14} /> Manage &amp; Sync Accounts
           </button>
         </div>
       </div>

@@ -3,7 +3,7 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import api from "../api";
-import { AUDIENCE, AUDIENCE_SHADES, GROWTH, KPIS, PERFORMANCE, PLATFORM_COLORS, POSTS, REVENUE_BARS } from "./data";
+import { AUDIENCE_SHADES, PLATFORM_COLORS } from "./data";
 import { Icon, PlatformBadge } from "./Icons";
 
 const k = (n) => (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n);
@@ -213,7 +213,7 @@ export function TopPosts({ posts: parentPosts }) {
     }
   }, [showCompare, selectedA, selectedB]);
 
-  const displayPosts = parentPosts !== undefined ? posts : (posts.length > 0 ? posts : POSTS);
+  const displayPosts = posts;
   const pA = compData?.compared_posts?.find((p) => p.post_id === Number(selectedA)) || posts.find((p) => p.post_id === Number(selectedA));
   const pB = compData?.compared_posts?.find((p) => p.post_id === Number(selectedB)) || posts.find((p) => p.post_id === Number(selectedB));
 
@@ -339,44 +339,75 @@ export function TopPosts({ posts: parentPosts }) {
 }
 
 export function Audience({ followers, platform }) {
-  const tabs = Object.keys(AUDIENCE);
   const [tab, setTab] = useState("Age");
-  const data = AUDIENCE[tab].map(([name, value]) => ({ name, value }));
+  const [demo, setDemo] = useState(null);
+
+  useEffect(() => {
+    const plat = !platform || platform === "All Platforms" ? "all" : platform.toLowerCase();
+    api.get(`/api/v1/analytics/audience?platform=${plat}&days=30`)
+      .then((res) => setDemo(res.data?.demographics || null))
+      .catch(() => setDemo(null));
+  }, [platform]);
+
+  const tabMap = demo
+    ? {
+        Age: (demo.age_brackets || []).map(([name, value]) => ({ name, value })),
+        Gender: (demo.gender || []).map((g) => ({ name: g.name, value: g.value })),
+        Location: (demo.top_locations || []).map(([name, value]) => ({ name, value })),
+      }
+    : { Age: [], Gender: [], Location: [] };
+
+  const tabs = Object.keys(tabMap);
+  const data = tabMap[tab] || [];
+
   return (
     <article className="card">
       <div className="card-head">
         <h2>Audience Demographics <Icon name="info" size={14} /></h2>
-        <a href="#" className="view-all" onClick={(e) => e.preventDefault()}>View All <Icon name="right" size={14} /></a>
       </div>
       <div className="tabs" role="tablist">
         {tabs.map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
-      <div className="aud">
-        <div className="donut">
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie data={data} dataKey="value" innerRadius="66%" outerRadius="100%" paddingAngle={1} stroke="none">
-                {data.map((d, i) => <Cell key={d.name} fill={AUDIENCE_SHADES[i % AUDIENCE_SHADES.length]} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="donut-mid"><strong>{followers != null ? k(followers) : "—"}</strong><small>{platform === "Instagram" ? "Followers" : "Subscribers"}</small></div>
+      {data.length === 0 ? (
+        <p className="muted" style={{ padding: 16 }}>Connect a social account to view audience demographics.</p>
+      ) : (
+        <div className="aud">
+          <div className="donut">
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={data} dataKey="value" innerRadius="66%" outerRadius="100%" paddingAngle={1} stroke="none">
+                  {data.map((d, i) => <Cell key={d.name} fill={AUDIENCE_SHADES[i % AUDIENCE_SHADES.length]} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="donut-mid"><strong>{followers != null ? k(followers) : "—"}</strong><small>{platform === "Instagram" ? "Followers" : "Subscribers"}</small></div>
+          </div>
+          <ul className="aud-list">
+            {data.map((d, i) => (
+              <li key={d.name}><i style={{ background: AUDIENCE_SHADES[i % AUDIENCE_SHADES.length] }} /><span>{d.name}</span><b>{d.value}%</b></li>
+            ))}
+          </ul>
         </div>
-        <ul className="aud-list">
-          {data.map((d, i) => (
-            <li key={d.name}><i style={{ background: AUDIENCE_SHADES[i % AUDIENCE_SHADES.length] }} /><span>{d.name}</span><b>{d.value}%</b></li>
-          ))}
-        </ul>
-      </div>
+      )}
     </article>
   );
 }
 
 export function Revenue({ overview, days }) {
-  const max = Math.max(...REVENUE_BARS);
-  const has = overview?.connected;
+  const [rev, setRev] = useState(null);
+
+  useEffect(() => {
+    api.get("/api/v1/revenue")
+      .then((res) => setRev(res.data))
+      .catch(() => setRev(null));
+  }, []);
+
+  const bars = (rev?.breakdown || []).map((b) => b.value);
+  const max = bars.length > 0 ? Math.max(...bars, 1) : 1;
+  const total = rev?.summary?.total ?? (overview?.connected ? overview.est_revenue : null);
+
   return (
     <article className="card">
       <div className="card-head">
@@ -384,12 +415,16 @@ export function Revenue({ overview, days }) {
       </div>
       <div className="rev">
         <div>
-          <small className="muted">Est. earnings, last {days} days (views × ₹0.23)</small>
-          <div className="kpi-main"><strong className="rev-n">{has ? money(overview.est_revenue) : "—"}</strong></div>
-          <p className="kpi-sub">Real AdSense data needs YouTube Analytics API + OAuth.</p>
+          <small className="muted">Tracked revenue &amp; sponsorships (last {days}d view)</small>
+          <div className="kpi-main"><strong className="rev-n">{total != null ? `₹${Number(total).toLocaleString("en-IN")}` : "—"}</strong></div>
+          <p className="kpi-sub">
+            {rev?.summary ? `₹${Number(rev.summary.paid).toLocaleString("en-IN")} paid • ₹${Number(rev.summary.pending).toLocaleString("en-IN")} pending` : "Manage deals in Revenue."}
+          </p>
         </div>
         <div className="rev-bars" aria-hidden="true">
-          {REVENUE_BARS.map((v, i) => <i key={i} style={{ height: `${(v / max) * 100}%` }} />)}
+          {(bars.length > 0 ? bars : [0]).map((v, i) => (
+            <i key={i} style={{ height: `${Math.max(8, (v / max) * 100)}%` }} />
+          ))}
         </div>
       </div>
     </article>
