@@ -18,7 +18,7 @@ def llm_is_configured() -> bool:
 
 def _chat_models() -> list[str]:
     primary = (os.getenv("LLM_MODEL") or "gemini-3.8-flash").strip()
-    candidates = [primary, "gemini-3.8-flash", "gemini-3.6-flash"]
+    candidates = [primary, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
     seen: list[str] = []
     for m in candidates:
         if m and m not in seen:
@@ -39,8 +39,8 @@ def _post_generate_content(payload: dict, key: str, timeout: int) -> Optional[di
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                log.warning("Gemini model %s returned 404, trying fallback model", model)
+            if exc.code in (404, 429, 500, 502, 503, 504):
+                log.warning("Gemini model %s returned HTTP %s, trying fallback model", model, exc.code)
                 continue
             raise
     return None
