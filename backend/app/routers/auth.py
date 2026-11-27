@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..core.rate_limit import rate_limit
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Agency, Creator, User
@@ -44,7 +45,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     return to_user_out(user)
 
 
-@router.post("/login", response_model=TokenOut)
+@router.post("/login", response_model=TokenOut, dependencies=[Depends(rate_limit("login", limit=30, window_seconds=60))])
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # OAuth2 password flow: the form field "username" carries the email.
     user = db.scalar(select(User).where(User.email == form.username.strip().lower()))

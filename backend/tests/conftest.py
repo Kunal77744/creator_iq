@@ -5,9 +5,10 @@ os.environ["DATABASE_URL"] = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql+psycopg2://postgres:postgres@localhost:5433/creatoriq_test",
 )
-os.environ["SECRET_KEY"] = "test-secret"
+os.environ["SECRET_KEY"] = "test-secret-key-for-creatoriq-ci-only-32b"
 os.environ["SEED_DEMO_USERS"] = "false"
 os.environ["BCRYPT_ROUNDS"] = "4"
+os.environ["DISABLE_RATE_LIMIT"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

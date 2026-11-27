@@ -8,6 +8,7 @@ from ..ai.agents.tools import calculate_sponsorship_rate, get_channel_kpis, get_
 from ..ai.llm import generate_ai_text
 from ..ai.rag.ingestion import index_creator_content
 from ..ai.rag.retriever import answer_rag_query, retrieve_similar_chunks
+from ..core.rate_limit import rate_limit
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Creator, Post, SocialAccount, User
@@ -37,18 +38,18 @@ class AgentChatRequest(BaseModel):
         return v.strip()
 
 
-@router.post("/index")
+@router.post("/index", dependencies=[Depends(rate_limit("ai", limit=30, window_seconds=60))])
 def index_content(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     count = index_creator_content(db, current_user.user_id)
     return {"status": "ok", "indexed_chunks": count}
 
 
-@router.post("/rag-query")
+@router.post("/rag-query", dependencies=[Depends(rate_limit("ai", limit=30, window_seconds=60))])
 def rag_query(body: RagQueryRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return answer_rag_query(db, current_user.user_id, body.query)
 
 
-@router.post("/agent-chat")
+@router.post("/agent-chat", dependencies=[Depends(rate_limit("ai", limit=30, window_seconds=60))])
 def agent_chat(body: AgentChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return run_growth_agent(db, current_user.user_id, body.message)
 

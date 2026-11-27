@@ -1,9 +1,9 @@
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from ...database import SessionLocal
 from ..agents import tools as agent_tools
 
-mcp = FastMCP("CreatorIQ")
+mcp = MCPServer("CreatorIQ")
 
 
 @mcp.tool()

@@ -8,7 +8,7 @@ EMBEDDING_DIM = 384
 
 
 def embed_text(text: str) -> list[float]:
-    """Generate a 384-dim vector embedding (uses Gemini text-embedding-004 if configured, else deterministic)."""
+    """Generate a 384-dim vector embedding (uses Gemini gemini-embedding-001 if configured, else deterministic)."""
     llm_vec = embed_with_llm(text or "", dimensions=EMBEDDING_DIM)
     if llm_vec is not None:
         return llm_vec

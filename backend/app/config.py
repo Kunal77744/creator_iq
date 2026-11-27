@@ -24,8 +24,16 @@ DATABASE_URL = _normalize_pg_url(
 DATABASE_URL_UNPOOLED = _normalize_pg_url(os.getenv("DATABASE_URL_UNPOOLED", DATABASE_URL))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-change-me")
-if os.getenv("ENV", "").lower() == "production" and SECRET_KEY == "dev-only-secret-change-me":
-    raise RuntimeError("SECRET_KEY must be set to a strong secret in production.")
+_IS_PROD = (
+    os.getenv("ENV", "").lower() == "production"
+    or os.getenv("VERCEL_ENV", "").lower() == "production"
+    or os.getenv("VERCEL", "") == "1"
+)
+if _IS_PROD and (
+    SECRET_KEY in {"dev-only-secret-change-me", "change-this-to-a-long-random-string"}
+    or len(SECRET_KEY) < 16
+):
+    raise RuntimeError("SECRET_KEY must be set to a strong secret (16+ chars) in production.")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
