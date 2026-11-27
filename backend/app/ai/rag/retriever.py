@@ -69,6 +69,7 @@ def retrieve_similar_chunks(db: Session, user_id: int, query: str, top_k: int = 
                 "platform": meta.get("platform", "Unknown"),
                 "views": meta.get("views", 0),
                 "engagement_rate": meta.get("engagement_rate", 0.0),
+                "chunk_type": meta.get("chunk_type", "post"),
                 "chunk_text": row.chunk_text,
                 "score": round(max(0.0, 1.0 - float(distance)), 4),
             }
@@ -87,21 +88,28 @@ def answer_rag_query(db: Session, user_id: int, query: str) -> dict:
         }
 
     context = "\n".join(
-        f"- [{h['platform']}] {h['title']} ({h['views']:,} views, {h['engagement_rate']}% eng)"
+        f"- [{h['platform']} | {h.get('chunk_type', 'post')}] {h['title']} "
+        f"({h['views']:,} views, {h['engagement_rate']}% eng): {h['chunk_text']}"
         for h in hits
     )
     llm_answer = generate_ai_text(
-        f"User question: {query}\n\nRetrieved creator content:\n{context}",
-        system_prompt="You are CreatorIQ AI. Answer concisely using ONLY the retrieved creator metrics above.",
+        f"User question: {query}\n\nRetrieved creator content & audience comments:\n{context}",
+        system_prompt=(
+            "You are CreatorIQ AI. Answer concisely using ONLY the retrieved creator metrics "
+            "and audience comments above. Cite specific videos or audience feedback when relevant."
+        ),
     )
     if llm_answer:
         return {"answer": llm_answer, "citations": hits, "source": "llm"}
 
-    lines = ["Based on your indexed creator content in PostgreSQL:"]
+    lines = ["Based on your indexed creator content and audience comments in PostgreSQL:"]
     for i, h in enumerate(hits, 1):
-        lines.append(
-            f"{i}. [{h['platform']}] {h['title']} — {h['views']:,} views, {h['engagement_rate']}% engagement (relevance {h['score']})."
-        )
+        if h.get("chunk_type") == "comments":
+            lines.append(f"{i}. [{h['platform']} Comments] {h['title']} — {h['chunk_text'][:220]}")
+        else:
+            lines.append(
+                f"{i}. [{h['platform']}] {h['title']} — {h['views']:,} views, {h['engagement_rate']}% engagement (relevance {h['score']})."
+            )
     return {
         "answer": "\n".join(lines),
         "citations": hits,

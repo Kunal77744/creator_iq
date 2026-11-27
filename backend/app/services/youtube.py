@@ -95,6 +95,69 @@ DEMO_VIDEOS = [
     },
 ]
 
+DEMO_VIDEO_COMMENTS: dict[str, list[str]] = {
+    "dQw4w9WgXcQ": [
+        "Please make a part 2 on deploying FastAPI + Postgres to production!",
+        "Can you explain Docker Compose networking for beginners?",
+        "This full-stack roadmap finally made backend APIs click for me.",
+    ],
+    "3JZ_D3ELwOQ": [
+        "Which AI tool do you use for scripting YouTube hooks?",
+        "Would love a video comparing sponsorship pricing calculators.",
+    ],
+    "fJ9rUzIMcZQ": [
+        "How did you stay consistent during the first 1,000 subscribers?",
+        "Please do a breakdown of your thumbnail CTR and retention graph!",
+    ],
+    "kXYiU_JCYtU": [
+        "Do Shorts help or hurt long-form channel growth in 2026?",
+        "More algorithm deep-dives like this please — best video on the channel!",
+    ],
+}
+
+
+def fetch_video_comments(
+    video_id: str,
+    api_key: str | None = None,
+    max_results: int = 12,
+    is_live: bool = True,
+) -> list[str]:
+    """Fetch top relevant public comments for a YouTube video (1 quota unit).
+
+    Returns demo comments when is_live=False, or [] safely if comments are disabled or API fails.
+    """
+    if not is_live:
+        return list(DEMO_VIDEO_COMMENTS.get(video_id, []))
+
+    key = api_key or YOUTUBE_API_KEY
+    if not key or not video_id:
+        return []
+
+    vid = urllib.parse.quote(video_id.strip())
+    url = (
+        "https://www.googleapis.com/youtube/v3/commentThreads"
+        f"?part=snippet&videoId={vid}&order=relevance&maxResults={max(1, min(max_results, 50))}"
+        f"&textFormat=plainText&key={key}"
+    )
+    try:
+        data = _get_json(url)
+    except Exception as exc:
+        log.warning("Skipping comments for video %s: %s", video_id, exc)
+        return []
+
+    comments: list[str] = []
+    for item in data.get("items", []):
+        text = (
+            item.get("snippet", {})
+            .get("topLevelComment", {})
+            .get("snippet", {})
+            .get("textDisplay", "")
+        )
+        cleaned = " ".join((text or "").split())
+        if cleaned:
+            comments.append(cleaned[:280])
+    return comments
+
 
 class YouTubeAPIError(Exception):
     """Raised when the live YouTube API call fails. Never silently swapped for demo data."""

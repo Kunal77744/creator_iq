@@ -121,3 +121,46 @@ def test_rag_multi_tenant_isolation(client, h):
     assert rag.status_code == 200
     # Must NOT leak Creator 1's embeddings
     assert rag.json()["citations"] == []
+
+
+def test_rag_indexes_youtube_comments_and_handles_api_errors(client, h, monkeypatch):
+    from app.services import youtube as yt_svc
+
+    # 1. Live fetch_video_comments parses commentThreads response and safely skips errors
+    monkeypatch.setattr(
+        yt_svc,
+        "_get_json",
+        lambda url: {
+            "items": [
+                {"snippet": {"topLevelComment": {"snippet": {"textDisplay": "Please make a Docker Compose tutorial!"}}}},
+                {"snippet": {"topLevelComment": {"snippet": {"textDisplay": "How do you deploy FastAPI to production?"}}}},
+            ]
+        },
+    )
+    comments = yt_svc.fetch_video_comments("abc123", api_key="fake-key", is_live=True)
+    assert len(comments) == 2
+    assert "Docker Compose" in comments[0]
+
+    def _boom(url):
+        raise yt_svc.YouTubeAPIError("commentsDisabled", 403)
+
+    monkeypatch.setattr(yt_svc, "_get_json", _boom)
+    assert yt_svc.fetch_video_comments("abc123", api_key="fake-key", is_live=True) == []
+
+    # 2. Demo YouTube sync + RAG index ingests DEMO_VIDEO_COMMENTS as comment chunks
+    monkeypatch.setattr(yt_svc, "YOUTUBE_API_KEY", "")
+    sync_r = client.post("/api/v1/analytics/youtube/sync", json={"channel_handle": "@techcreator"}, headers=h["creator"])
+    assert sync_r.status_code == 200
+
+    idx = client.post("/api/v1/ai/index", headers=h["creator"])
+    assert idx.status_code == 200
+    assert idx.json()["indexed_chunks"] > 6  # 6 post chunks + comment chunks
+
+    rag = client.post(
+        "/api/v1/ai/rag-query",
+        json={"query": "What are audience comments asking about Docker Compose networking?"},
+        headers=h["creator"],
+    )
+    assert rag.status_code == 200
+    body = rag.json()
+    assert any(c.get("chunk_type") == "comments" for c in body["citations"])

@@ -26,11 +26,11 @@ TOOL_DECLARATIONS = [
     },
     {
         "name": "search_creator_content_rag",
-        "description": "Search the creator's indexed videos and posts via pgvector RAG or SQL ranking.",
+        "description": "Search the creator's indexed videos, posts, and YouTube audience comments via pgvector RAG or SQL ranking.",
         "parameters": {
             "type": "OBJECT",
             "properties": {
-                "query": {"type": "STRING", "description": "Search query about creator's videos or performance"}
+                "query": {"type": "STRING", "description": "Search query about creator's videos, performance, or audience comments"}
             },
             "required": ["query"],
         },
@@ -39,7 +39,8 @@ TOOL_DECLARATIONS = [
 
 _SYSTEM_PROMPT = (
     "You are CreatorIQ Growth Agent. Use the provided tools to inspect the creator's real PostgreSQL "
-    "metrics, revenue, sponsorship valuation, and RAG content before answering. Never invent numbers."
+    "metrics, revenue, sponsorship valuation, and RAG content (including YouTube audience comments) "
+    "before answering. Never invent numbers."
 )
 
 
@@ -113,7 +114,12 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
     want_kpis = any(w in q for w in ("kpi", "follower", "subscriber", "view", "channel", "overview", "growth", "summary"))
     want_rev = any(w in q for w in ("revenue", "money", "earn", "income", "payout", "summary"))
     want_sponsor = any(w in q for w in ("sponsor", "rate", "price", "brand", "deal", "charge"))
-    want_rag = any(w in q for w in ("video", "post", "content", "topic", "engagement", "best", "top", "why"))
+    want_rag = any(
+        w in q for w in (
+            "video", "post", "content", "topic", "engagement", "best", "top", "why",
+            "comment", "audience", "feedback", "idea", "ask", "question", "demand", "next",
+        )
+    )
 
     if not (want_kpis or want_rev or want_sponsor or want_rag):
         want_kpis = want_rag = True
@@ -148,10 +154,15 @@ def run_growth_agent(db: Session, user_id: int, message: str) -> dict:
         citations = hits
         if hits:
             top = hits[0]
-            sections.append(
-                f"**Top Relevant Content:** [{top['platform']}] {top['title']} "
-                f"({top['views']:,} views, {top['engagement_rate']}% engagement)."
-            )
+            if top.get("chunk_type") == "comments":
+                sections.append(
+                    f"**Audience Comment Insights ({top['title']}):** {top['chunk_text'][:220]}"
+                )
+            else:
+                sections.append(
+                    f"**Top Relevant Content:** [{top['platform']}] {top['title']} "
+                    f"({top['views']:,} views, {top['engagement_rate']}% engagement)."
+                )
         else:
             sections.append("**Content Search:** No indexed posts yet — click 'Index Content' to enable RAG search.")
 
