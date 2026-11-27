@@ -61,3 +61,18 @@ def test_new_creator_starts_with_no_fake_channel(client):
     body = r.json()
     assert body["connected"] is False
     assert body["channel_name"] is None
+
+
+def test_two_creators_can_sync_same_public_channel(client, h, monkeypatch):
+    from .conftest import auth, register
+
+    # Force demo fallback in test so no external YouTube quota/network is needed
+    monkeypatch.setattr("app.services.youtube.YOUTUBE_API_KEY", "")
+
+    r1 = client.post("/api/v1/analytics/youtube/sync", json={"channel_handle": "@chaiaurcode"}, headers=h["creator"])
+    assert r1.status_code == 200, r1.text
+
+    register(client, email="kunal2@example.com", role="creator", name="Kunal 2")
+    h2 = auth(client, "kunal2@example.com", "Pass1234")
+    r2 = client.post("/api/v1/analytics/youtube/sync", json={"channel_handle": "@chaiaurcode"}, headers=h2)
+    assert r2.status_code == 200, r2.text

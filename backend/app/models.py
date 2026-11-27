@@ -110,7 +110,7 @@ class AgencyCreator(Base):
 class SocialAccount(Base):
     __tablename__ = "social_accounts"
     __table_args__ = (
-        UniqueConstraint("platform", "platform_user_id", name="uq_social_platform_user"),
+        UniqueConstraint("creator_id", "platform", "platform_user_id", name="uq_creator_social_platform_user"),
     )
 
     account_id: Mapped[int] = mapped_column(Integer, primary_key=True)
