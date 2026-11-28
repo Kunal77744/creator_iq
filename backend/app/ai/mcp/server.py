@@ -1,11 +1,11 @@
 """Model Context Protocol (MCP) server exposing CreatorIQ agent tools over stdio/MCP."""
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.fastmcp import FastMCP
 
 from ...database import SessionLocal
 from ..agents import tools as agent_tools
 
-mcp = MCPServer("CreatorIQ")
+mcp = FastMCP("CreatorIQ")
 
 
 @mcp.tool()
